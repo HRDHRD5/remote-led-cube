@@ -9,18 +9,19 @@ This is a derivative of the 8x8x8 Firmware by Sliicy, which is based on the orig
 #define uchar unsigned char
 #define uint unsigned int
 
-volatile uchar z = 0; // Z-layer being re-painted
-volatile uchar y = 0; // Z-layer being re-painted
 
 #define MAX_BUFFER 130 // UART ring buffer size
 #define CUBE_WIDTH 8 // Number of leds in one row
 #define LED_COUNT CUBE_WIDTH*CUBE_WIDTH // Number of Leds in Cube
 #define MAGIC_BYTE 0xf2 // Byte triggering UART
-#define UPDATE_CYCLES 64000 // Number of cycles to wait at every cube update
+#define UPDATE_CYCLES 10000 // Number of cycles to wait at every cube update
 
 
 __xdata volatile uchar display1[LED_COUNT] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
-__xdata volatile uchar display2[LED_COUNT] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x0F,0xFF,0x8F,0xFF,0xF2,0xFF,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+__xdata volatile uchar display2[LED_COUNT] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00};
+
+volatile uchar z = 0; // Z-layer being re-painted
+volatile uchar y = 0; // Z-layer being re-painted
 
 __xdata volatile uchar *temp;
 __xdata volatile uchar *uart_buffer = display1;
@@ -29,19 +30,22 @@ __xdata volatile uchar *display_buffer = display2;
 volatile int rx_write = -1;
 
 void refresh_screen(__xdata volatile uchar buffer[LED_COUNT]);
+void delay(uint i);
 
 void volatile inline reset_timer()
 {
     TH0 = (16383 - UPDATE_CYCLES) & 0xFF;
     TL0 = ((16383 - UPDATE_CYCLES) >> 8) & 0xFF;
+    TR0 = 1; // start timer0
+    ET0 = 1; // enable timer0 interrupt
 }
 
 // interrupt driven uart with ring buffer
 void uart_isr() __interrupt(4)
 {
-    //if (RI) // received a byte
-    //{
-        //RI = 0; // Clear receive interrupt flag
+    if (RI) // received a byte
+    {
+        RI = 0; // Clear receive interrupt flag
 
         if (rx_write < 0 && SBUF == MAGIC_BYTE)
         {
@@ -61,33 +65,35 @@ void uart_isr() __interrupt(4)
             display_buffer = temp;
             rx_write = -1;
         }
-    //}
+    }
 }
 
 // interrupt driven cube led update
 void timer_isr() __interrupt(1)
 {
     reset_timer();
+    //TR0 = 0; // start timer0
+    //ET0 = 0; // enable timer0 interrupt
     //TF0 = 0; // Clear receive interrupt flag
 
-
     refresh_screen(display_buffer);
+    refresh_screen(display_buffer);
+    //delay(3000);
 }
 
 // Some magic wait - as in original code:
-void delay5us(void)
+volatile inline void delaynop(int a)
 {
-    unsigned char a, b;
-    for (b = 7; b > 0; b--)
-        for (a = 2; a > 0; a--)
-            ;
+    while (a--){
+        __asm nop __endasm;
+    }
 }
 
 void delay(uint i)
 {
     while (i--)
     {
-        delay5us();
+        delaynop(1);
     }
 }
 
@@ -98,30 +104,31 @@ void refresh_screen(__xdata volatile uchar buffer[LED_COUNT])
       P1 range: 255 = all off; 0 = all on; 254 = bottommost on; 127 = topmost on (Z)
       P2 range: 1 = frontmost on; 128 = backmost on (X)
     */
-    //for (z = 0; z < CUBE_WIDTH; z++){
-    //for (uchar y = 0; y < 8; y++)
-    //{
-        // P2 controls the X-Axis:
-        P2 = buffer[(z*CUBE_WIDTH) + y];
-        // P2 = 0x0F;
+    P1 = 0xFF;
+    P0 = 0xFF;
 
-        // Longer the delay = brighter the LEDs shine:
+    // P2 controls the X-Axis:
+    P2 = buffer[(z*CUBE_WIDTH) + y];
 
-        // P1 controls the Z-Axis:
-        P1 = (255 - (1 << z));
-        // P1 = 0x08;
+    // P1 controls the Z-Axis:
+    P1 = (0xFF - (0x1 << z));
 
-        // P0 controls the Y-Axis:
-        // P0 must be set after P2 and P1 in order for the desired lighting to take effect.
-        P0 = (255 - (1 << y));
-        // P0 = 0x04;
-    //}
-    //P2 = 255;
-    //P0 = 255;}
+    // P0 controls the Y-Axis:
+    P0 = (0xFF - (0x1 << y));
+
+    // Longer the delay = brighter the LEDs shine:
+    delay(10);
+
+    P1 = 0xFF;
+    P0 = 0xFF;
 
     y += 1;
     if (y % CUBE_WIDTH == 0)
     {
+        //P2 = buffer[(z*CUBE_WIDTH) + y];
+        //P1 = (255 - (1 << z));
+        //P0 = (255 - (1 << y));
+
         y = 0;
         z = (z + 1) % CUBE_WIDTH; // Rewind and draw for each vertical layer.
     }
@@ -145,9 +152,16 @@ void main()
     ES = 1; // enable UART interrupt
 
     // setup timer0
-    TMOD &= 0xE7; // setting timer mode bits
-    reset_timer();
-    TR0 = 1; // start timer0
-    ET0 = 1; // enable timer0 interrupt
+    //TMOD &= 0xE7; // setting timer mode bits
+    //reset_timer();
+    //TR0 = 1; // start timer0
+    //TF0 = 0; // Clear Timer 0 overflow flag
+    //ET0 = 1; // enable timer0 interrupt
     EA = 1; // enable global interrupts
+
+
+    while(1)
+    {
+        refresh_screen(display_buffer);
+    }
 }

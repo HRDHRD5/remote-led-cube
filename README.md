@@ -12,5 +12,7 @@ The firmware by Sliicy is also present in this repository as "cube-firmware.ihx"
 
 2.
 Since the RPI Pico runs UART only on 3.3V and the Cube expects 5.5V you need a level Shifter. Lukily the pico has a 5V VCC, so the shifter can be build with two 2N7000 Mosfets:
+
 ![schematic for 3.3V to 5V Level Shifter](LevelShifter.png)
+
 Please note that this is just the solution i took and the level shifter can be build totally different.
