@@ -1,0 +1,3 @@
+
+compile:
+	sdcc firmware.c
