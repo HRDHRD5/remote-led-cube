@@ -5,18 +5,18 @@ byte hexToByte(const char number[2])
     byte result = 0;
     if (number[0] > 47 && number[0] < 58)
     {
-        result += number[0] - 48;
+        result += number[0] - 48 << 4;
     } else if (number[0] > 64 && number[0] < 71)
     {
-        result += number[0] - 55;
+        result += number[0] - 55 << 4;
     }
 
     if (number[1] > 47 && number[1] < 58)
     {
-        result += (number[1] - 48) << 4;
+        result += (number[1] - 48);
     } else if (number[1] > 64 && number[1] < 71)
     {
-        result += (number[1] - 55) << 4;
+        result += (number[1] - 55);
     }
 
     return result;
