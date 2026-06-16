@@ -16,3 +16,4 @@
 *.hex
 
 venv
+__pycache__

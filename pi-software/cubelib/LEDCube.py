@@ -52,6 +52,7 @@ class LEDCube:
         self.matrix = [True] * self.width * self.width * self.width
 
         # Init animation counters
+        self.clock_animation_xy = [0, 7]
 
     def get_coord(self, x: int, y: int, z: int) -> bool:
         if x > self.width or y > self.width or z > self.width:
@@ -89,6 +90,10 @@ class LEDCube:
                 else:
                     self.set_coord(x, y+a, z+b, val_pixel)
 
+    def set_line(self, x0: int, y0: int, z0: int, x1: int, y1: int, z1: int, on: bool=True):
+        # implement 3D Bresenham T_T
+        pass
+
     def on(self):
         for x in range(self.width):
             for y in range(self.width):
@@ -125,6 +130,10 @@ class LEDCube:
             str(int(now.second/10))), 7, 1, 0, PlaneOrientation.YZP)
         self.set_plane(self.two_by_seven_char(
             str(int(now.second% 10))), 7, 5, 0, PlaneOrientation.YZP)
+
+        if now.second == 0 and self.clock_animation_xy[0] == 0 and self.clock_animation_xy[0] == 0:
+            # circle animation
+            pass
 
     def get_url(self) -> str:
         return f"http://{self.host}:{self.port}/"
