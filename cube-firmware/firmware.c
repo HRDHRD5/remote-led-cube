@@ -10,7 +10,6 @@ This is a derivative of the 8x8x8 Firmware by Sliicy, which is based on the orig
 #define uint unsigned int
 
 
-#define MAX_BUFFER 130 // UART ring buffer size
 #define CUBE_WIDTH 8 // Number of leds in one row
 #define LED_COUNT CUBE_WIDTH*CUBE_WIDTH // Number of Leds in Cube
 #define MAGIC_BYTE 0xf2 // Byte triggering UART
@@ -21,7 +20,7 @@ __xdata volatile uchar display1[LED_COUNT] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00
 __xdata volatile uchar display2[LED_COUNT] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 
 volatile uchar z = 0; // Z-layer being re-painted
-volatile uchar y = 0; // Z-layer being re-painted
+volatile uchar y = 0; // Y-layer being re-painted
 
 __xdata volatile uchar *temp;
 __xdata volatile uchar *uart_buffer = display1;
@@ -32,7 +31,7 @@ volatile int rx_write = -1;
 void refresh_screen(__xdata volatile uchar buffer[LED_COUNT]);
 void delay(uint i);
 
-// interrupt driven uart with ring buffer
+// interrupt driven uart with two alternating buffers
 void uart_isr() __interrupt(4)
 {
     if (RI) // received a byte
@@ -60,7 +59,7 @@ void uart_isr() __interrupt(4)
     }
 }
 
-// Some magic wait - as in original code:
+// Execute number of nop instructions
 volatile inline void delaynop(int a)
 {
     while (a--){
@@ -111,11 +110,6 @@ void refresh_screen(__xdata volatile uchar buffer[LED_COUNT])
 
 void main()
 {
-    __bit uart_detected = 0;
-    __bit frame_started = 0;
-
-    __bit paint_last_frame = 0; // Controls whether or not to paint the last frame (this should happen once every refresh).
-
     // init uart - 19200bps@24.000MHz MCU
     PCON &= 0x7F; // Baudrate no doubled
     SCON = 0x50;  // 8bit and variable baudrate, 1 stop __bit, no parity
@@ -126,12 +120,6 @@ void main()
 
     ES = 1; // enable UART interrupt
 
-    // setup timer0
-    //TMOD &= 0xE7; // setting timer mode bits
-    //reset_timer();
-    //TR0 = 1; // start timer0
-    //TF0 = 0; // Clear Timer 0 overflow flag
-    //ET0 = 1; // enable timer0 interrupt
     EA = 1; // enable global interrupts
 
 
