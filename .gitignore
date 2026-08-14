@@ -5,7 +5,6 @@
 .vscode/ipch
 
 *.asm
-*.ihx
 *.lk
 *.lst
 *.map
