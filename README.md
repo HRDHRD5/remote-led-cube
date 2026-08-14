@@ -2,7 +2,10 @@
 This Repository contains the software for the RPI pico (pi-software/led-cube-controller) and animation client software (pi-software/).
 
 # Demo video running a clock on the cube
-<video controls src="https://github.com/HRDHRD5/remote-led-cube/media/remotecube-demo.mp4" title="Clock Demo"></video>
+<video controls src="https://github.com/HRDHRD5/remote-led-cube/blob/main/media/remotecube-demo.mp4" title="Clock Demo"></video>
+
+[![Clock Demo](https://github.com/HRDHRD5/remote-led-cube/blob/main/media/remotecube-demo-thumbnail.png)](https://github.com/HRDHRD5/remote-led-cube/blob/main/media/remotecube-demo.mp4)
+remotecube-demo-thumbnail.png
 
 # Beware
 ## Requirements
