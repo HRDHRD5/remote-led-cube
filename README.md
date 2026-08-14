@@ -1,6 +1,9 @@
 # Controll your 8x8x8 LED-Cude with a raspberry pi pico
 This Repository contains the software for the RPI pico (pi-software/led-cube-controller) and animation client software (pi-software/).
 
+# Demo video running a clock on the cube
+<video controls src="https://github.com/HRDHRD5/remote-led-cube/media/remotecube-demo.mp4" title="Clock Demo"></video>
+
 # Beware
 ## Requirements
 1.
