@@ -10,9 +10,29 @@ WebServer websrv(80);
 
 void handleRoot()
 {
+    websrv.send(200, "text/html", WEBSITE_HTML);
+}
+
+void setClockTime()
+{
+    String clockSet = websrv.arg("plain");
+    cController.setBaseTime(clockSet.toInt());
+
+    websrv.send(200, "text/plain", "New Time Set");
+}
+
+void setClockEnabled()
+{
+    String clockSet = websrv.arg("plain");
+    clockSet.toLowerCase();
+    cController.setClockEnabled(clockSet == "true");
+
+    websrv.send(200, "text/plain", "Mode updated");
+}
+
+void handleDisplay()
+{
     String frameRaw = websrv.arg("plain");
-    Serial.println(frameRaw);
-    Serial.println("y");
     cController.sendFrame(frameRaw.c_str(), frameRaw.length());
     websrv.send(200, "text/plain", "Frame send to cube");
 }
@@ -24,7 +44,10 @@ void handleNotFound()
 
 void initWebServer()
 {
-    websrv.on("/", HTTP_POST, handleRoot);
+    websrv.on("/", HTTP_GET, handleRoot);
+    websrv.on("/display", HTTP_POST, handleDisplay);
+    websrv.on("/setclock/time", HTTP_POST, setClockTime);
+    websrv.on("/setclock/enabled", HTTP_POST, setClockEnabled);
     websrv.onNotFound(handleNotFound);
     websrv.begin();
 }
@@ -42,4 +65,5 @@ void setup()
 void loop()
 {
     websrv.handleClient();
+    cController.update();
 }

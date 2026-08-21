@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clock Control</title>
+
+    <style>
+        :root {
+            color-scheme: dark;
+            --background: #0d1117;
+            --surface: #161b22;
+            --surface-2: #21262d;
+            --border: #30363d;
+            --text: #f0f6fc;
+            --muted: #8b949e;
+            --accent: #238636;
+            --accent-hover: #2ea043;
+            --blue: #1f6feb;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--background);
+            color: var(--text);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont,
+                "Segoe UI", sans-serif;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            margin: 0 0 28px;
+            color: var(--muted);
+        }
+
+        .setting {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 18px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .setting-title {
+            font-weight: 600;
+        }
+
+        .setting-description {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        /* Toggle */
+
+        .toggle {
+            position: relative;
+            width: 52px;
+            height: 30px;
+            flex-shrink: 0;
+        }
+
+        .toggle input {
+            display: none;
+        }
+
+        .slider {
+            position: absolute;
+            inset: 0;
+            cursor: pointer;
+            border-radius: 30px;
+            background: #484f58;
+            transition: 0.2s;
+        }
+
+        .slider::before {
+            content: "";
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            top: 4px;
+            left: 4px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.2s;
+        }
+
+        .toggle input:checked+.slider {
+            background: var(--blue);
+        }
+
+        .toggle input:checked+.slider::before {
+            transform: translateX(22px);
+        }
+
+        /* Clock */
+
+        .clock-container {
+            margin-top: 24px;
+            padding: 32px 20px;
+            text-align: center;
+            background: #090c10;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        #clock {
+            font-family: monospace;
+            font-size: clamp(42px, 10vw, 76px);
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        /* Clock controls */
+
+        .clock-controls {
+            margin-top: 20px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .control {
+            padding: 16px;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+
+        .control-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="time"] {
+            flex: 1;
+            min-width: 0;
+            padding: 10px;
+            background: var(--background);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: 0;
+            border-radius: 7px;
+            background: var(--blue);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover {
+            filter: brightness(1.1);
+        }
+
+        button.secondary {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+        }
+
+        /* Disabled clock */
+
+        .display-endpoint {
+            margin-top: 24px;
+            padding: 20px;
+            background: rgba(31, 111, 235, 0.08);
+            border: 1px solid rgba(31, 111, 235, 0.35);
+            border-radius: 10px;
+        }
+
+        .display-endpoint strong {
+            display: block;
+            margin-bottom: 7px;
+        }
+
+        .endpoint {
+            display: inline-block;
+            margin: 5px 0 8px;
+            padding: 7px 10px;
+            background: var(--background);
+            border-radius: 6px;
+            color: #79c0ff;
+            font-family: monospace;
+        }
+
+        .display-endpoint p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 520px) {
+            .setting {
+                align-items: flex-start;
+            }
+
+            .control-row {
+                flex-direction: column;
+            }
+
+            input[type="time"],
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="card">
+
+            <h1>Clock Control</h1>
+            <p class="subtitle">
+                Configure the clock displayed by the system.
+            </p>
+
+            <!-- Enable / disable clock -->
+            <div class="setting">
+                <div>
+                    <div class="setting-title">Clock</div>
+                    <div class="setting-description">
+                        Enable or disable clock mode.
+                    </div>
+                </div>
+
+                <label class="toggle">
+                    <input type="checkbox" id="clockEnabled">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- Clock enabled -->
+            <div id="clockMode">
+
+                <div class="clock-container">
+                    <div id="clock">00:00:00</div>
+                </div>
+
+                <div class="clock-controls">
+
+                    <!-- Automatic browser time -->
+                    <div class="control">
+                        <div class="control-title">
+                            Automatically use browser time
+                        </div>
+
+                        <div class="setting-description">
+                            Synchronize the clock with the current time of
+                            the browser.
+                        </div>
+
+                        <br>
+
+                        <button id="browserTimeButton">
+                            Use browser time
+                        </button>
+                    </div>
+
+                    <!-- Manual time -->
+                    <div class="control">
+                        <div class="control-title">
+                            Set time manually
+                        </div>
+
+                        <div class="setting-description">
+                            Set the clock to a specific time.
+                        </div>
+
+                        <br>
+
+                        <div class="control-row">
+                            <input type="time" id="manualTime" step="1">
+
+                            <button id="manualTimeButton">
+                                Set time
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Clock disabled -->
+            <div id="displayMode" class="display-endpoint hidden">
+                <strong>Clock is disabled</strong>
+
+                <div class="endpoint">/display</div>
+
+                <p>
+                    Packages can be sent to this endpoint to display
+                    content.
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        "use strict";
+
+        const clockEnabled = document.getElementById("clockEnabled");
+        const clockMode = document.getElementById("clockMode");
+        const displayMode = document.getElementById("displayMode");
+
+        const clock = document.getElementById("clock");
+
+        const browserTimeButton =
+            document.getElementById("browserTimeButton");
+
+        const manualTime =
+            document.getElementById("manualTime");
+
+        const manualTimeButton =
+            document.getElementById("manualTimeButton");
+
+
+        /*
+         * The clock has two possible sources:
+         *
+         * 1. browserTime
+         *    The browser's current system time.
+         *
+         * 2. manual
+         *    A manually selected starting time. The clock continues
+         *    ticking from that time.
+         */
+        let clockSource = "browser";
+
+        let manualBaseTime = null;
+        let manualSetAt = null;
+
+
+        /*
+         * Format a Date as HH:MM:SS.
+         */
+        function formatTime(date) {
+            const hours = String(date.getHours()).padStart(2, "0");
+            const minutes = String(date.getMinutes()).padStart(2, "0");
+            const seconds = String(date.getSeconds()).padStart(2, "0");
+
+            return `${hours}:${minutes}:${seconds}`;
+        }
+
+
+        /*
+         * Get the current clock time depending on the selected source.
+         */
+        function getCurrentClockTime() {
+            if (clockSource === "browser") {
+                return new Date();
+            }
+
+            /*
+             * Manual mode:
+             *
+             * manualBaseTime is the time selected by the user.
+             * manualSetAt is the browser timestamp at which it was selected.
+             *
+             * This makes the manually selected clock continue ticking.
+             */
+            const elapsed = Date.now() - manualSetAt;
+
+            return new Date(manualBaseTime.getTime() + elapsed);
+        }
+
+
+        /*
+         * Update the visible clock.
+         */
+        function updateClock() {
+            if (!clockEnabled.checked) {
+                return;
+            }
+
+            clock.textContent =
+                formatTime(getCurrentClockTime());
+        }
+
+
+        /*
+         * Switch between enabled clock mode and disabled display mode.
+         */
+        function updateMode() {
+            if (clockEnabled.checked) {
+                clockMode.classList.remove("hidden");
+                displayMode.classList.add("hidden");
+
+                updateClock();
+            } else {
+                clockMode.classList.add("hidden");
+                displayMode.classList.remove("hidden");
+            }
+        }
+
+
+        /*
+         * Use the browser's current system time.
+         */
+        browserTimeButton.addEventListener("click", () => {
+            clockSource = "browser";
+            manualBaseTime = null;
+            manualSetAt = null;
+
+            updateClock();
+        });
+
+
+        /*
+         * Set a manual clock time.
+         */
+        manualTimeButton.addEventListener("click", () => {
+            if (!manualTime.value) {
+                return;
+            }
+
+            const parts = manualTime.value.split(":");
+
+            const hours = Number(parts[0]);
+            const minutes = Number(parts[1]);
+            const seconds = Number(parts[2] || 0);
+
+            const now = new Date();
+
+            /*
+             * Create today's date with the manually selected time.
+             */
+            manualBaseTime = new Date(
+                now.getFullYear(),
+                now.getMonth(),
+                now.getDate(),
+                hours,
+                minutes,
+                seconds,
+                0
+            );
+
+            manualSetAt = Date.now();
+            clockSource = "manual";
+
+            updateClock();
+        });
+
+
+        /*
+         * Enable / disable clock mode.
+         */
+        clockEnabled.addEventListener("change", updateMode);
+
+
+        /*
+         * Keep the clock running.
+         */
+        setInterval(updateClock, 250);
+
+
+        /*
+         * Initial state:
+         *
+         * Clock disabled.
+         * /display is therefore shown.
+         */
+        updateMode();
+    </script>
+
+</body>
+
+</html>
