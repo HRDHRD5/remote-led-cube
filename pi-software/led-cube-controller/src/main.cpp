@@ -16,7 +16,7 @@ void handleRoot()
 void setClockTime()
 {
     String clockSet = websrv.arg("plain");
-    cController.setBaseTime(clockSet.toInt());
+    cController.setBaseTime(strtoull(clockSet.c_str(), nullptr, 10));
 
     websrv.send(200, "text/plain", "New Time Set");
 }
@@ -54,7 +54,6 @@ void initWebServer()
 
 void setup()
 {
-    // Serial1.begin(9600L);
     Serial1.begin(BAUDRATE, SERIAL_8N1);
     Serial.begin(115200);
     wifiController.tryUntilWifiConnected();

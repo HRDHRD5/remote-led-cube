@@ -414,8 +414,10 @@
                 return;
             }
 
-            clock.textContent =
-                formatTime(getCurrentClockTime());
+            const time = getCurrentClockTime();
+
+            clock.textContent = formatTime(time);
+            return time;
         }
 
 
@@ -423,6 +425,13 @@
          * Switch between enabled clock mode and disabled display mode.
          */
         function updateMode() {
+            fetch("/setclock/enabled", {
+                method: "POST",
+                body: clockEnabled.checked ? "true" : "false",
+                headers: {
+                    "Content-type": "text/plain; charset=UTF-8"
+                }
+            });
             if (clockEnabled.checked) {
                 clockMode.classList.remove("hidden");
                 displayMode.classList.add("hidden");
@@ -434,6 +443,18 @@
             }
         }
 
+        function sendClockUpdate() {
+            var time = updateClock();
+            time = time.getTime() - (time.getTimezoneOffset() * 60000);
+
+            fetch("/setclock/time", {
+                method: "POST",
+                body: String(time),
+                headers: {
+                    "Content-type": "text/plain; charset=UTF-8"
+                }
+            });
+        }
 
         /*
          * Use the browser's current system time.
@@ -443,7 +464,7 @@
             manualBaseTime = null;
             manualSetAt = null;
 
-            updateClock();
+            sendClockUpdate();
         });
 
 
@@ -479,7 +500,7 @@
             manualSetAt = Date.now();
             clockSource = "manual";
 
-            updateClock();
+            sendClockUpdate();
         });
 
 

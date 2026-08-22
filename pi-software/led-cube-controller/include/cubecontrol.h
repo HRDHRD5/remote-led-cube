@@ -11,13 +11,23 @@ class CubeController
 {
     private:
         uint32_t baudRate;
-        long millisBaseTime;
-        long timeOffset = 0;
+        uint64_t millisBaseTime;
+        uint64_t timeOffset = 0;
         byte hours = 0;
         byte minutes = 0;
         byte seconds = 0;
-        byte clockFrame[FRAME_LENGTH];
         bool clockEnabled = true;
+        byte clockFrame[FRAME_LENGTH];
+        byte tenSecondAnimationCounter = 1;
+        byte minuteAnimationCounter = 1;
+        uint32_t hourAnimationCounter = 1;
+        const byte planeOn[8] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+        const byte secondsArrowMap[4][8] = {
+            {0x0,0x0,0x0,0x18,0x18,0x18,0x18,0x18},
+            {0x0,0x0,0x0,0x1F,0x1F,0x0,0x0,0x0},
+            {0x18,0x18,0x18,0x18,0x18,0x0,0x0,0x0},
+            {0x0,0x0,0x0,0xF8,0xF8,0x0,0x0,0x0},
+        };
         const byte charMap[10][8] = {
             /*0*/{0x1F,0x11,0x1F,0x0,0x0,0x0,0x0,0x0},
             /*1*/{0x2,0x1F,0x0,0x0,0x0,0x0,0x0,0x0},
@@ -35,11 +45,12 @@ class CubeController
         void updateTime();
         void setPlane(const byte plane[8], const int x, const int y, const int z, byte orientation);
         void setClockFrame();
+        void setCoord(byte x, byte y, byte z, bool on);
     public:
         CubeController(uint32_t _baudRate);
         void sendFrame(const char *frameHex, uint32_t frameLen);
         void update();
-        void setBaseTime(long mills);
+        void setBaseTime(uint64_t mills);
         void setClockEnabled(bool enabled);
 };
 #endif
