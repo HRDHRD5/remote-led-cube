@@ -44,8 +44,10 @@ class CubeController
         void sendFrameUART(const byte frame[FRAME_LENGTH]);
         void updateTime();
         void setPlane(const byte plane[8], const int x, const int y, const int z, byte orientation);
-        void setClockFrame();
+        void setClockFrameTwoSideClock();
+        void setClockFrameThreeSideClock();
         void setCoord(byte x, byte y, byte z, bool on);
+        void drawLine(byte x1, byte y1, byte z1, byte x2, byte y2, byte z2);
     public:
         CubeController(uint32_t _baudRate);
         void sendFrame(const char *frameHex, uint32_t frameLen);

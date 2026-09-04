@@ -39,16 +39,6 @@ void CubeController::updateTime()
     hours = (time % 86400) / 3600;
     minutes = (time % 3600) / 60;
     seconds = time % 60;
-
-    // Adjust for 12 Hour Format
-    if (hours > 12 )
-    {
-        hours = hours - 12;
-    }
-    else if (hours == 0)
-    {
-        hours = 12;
-    }
 }
 
 void CubeController::setCoord(byte x, byte y, byte z, bool on)
@@ -120,9 +110,103 @@ void CubeController::setPlane(const byte plane[8], const int x, const int y, con
     }
 }
 
-void CubeController::setClockFrame()
+void CubeController::drawLine(byte x1, byte y1, byte z1, byte x2, byte y2, byte z2)
+{
+    if (x1 > 7)
+        x1 = 7;
+    if (x2 > 7)
+        x2 = 7;
+    if (y2 > 7)
+        y2 = 7;
+    if (y2 > 7)
+        y2 = 7;
+    if (z2 > 7)
+        z2 = 7;
+    if (z2 > 7)
+        z2 = 7;
+    float posX = x1;
+    float posY = y1;
+    float posZ = z1;
+    float deltaX, deltaY, deltaZ;
+    float deltaFX = x1-x2;
+    float deltaFY = y1-y2;
+    float deltaFZ = z1-z2;
+
+    if (abs(deltaFX) >= abs(deltaFY) && abs(deltaFX) >= abs(deltaFZ))
+    {
+        deltaX = 1.0;
+        deltaY = deltaX * (deltaFY/deltaFX);
+        deltaZ = deltaX * (deltaFZ/deltaFX);
+    }
+    else if (abs(deltaFY) >= abs(deltaFZ))
+    {
+        deltaY = 1.0;
+        deltaX = deltaY * (deltaFX/deltaFY);
+        deltaZ = deltaY * (deltaFZ/deltaFY);
+    }
+    else
+    {
+        deltaZ = 1.0;
+        deltaX = deltaZ * (deltaFX/deltaFZ);
+        deltaY = deltaZ * (deltaFY/deltaFZ);
+    }
+
+    while (abs(posX-float(x1)) < abs(deltaFX) || abs(posY-float(y1)) < abs(deltaFY) || abs(posZ-float(z1)) < abs(deltaFZ))
+    {
+        setCoord(round(posX), round(posY), round(posZ), true);
+        posX += deltaX;
+        posY += deltaY;
+        posZ += deltaZ;
+    }
+    setCoord(x2, y2, z2, true);
+}
+
+void CubeController::setClockFrameTwoSideClock()
 {
     memset(clockFrame, 0, FRAME_LENGTH);
+    if (hours > 9)
+        setPlane(charMap[hours / 10], 0, 7, 0, 1);
+    setPlane(charMap[hours % 10], 4, 7, 0, 1);
+    // setting minutes
+    setPlane(charMap[minutes / 10], 7, 6, 0, 5);
+    setPlane(charMap[minutes % 10], 7, 2, 0, 5);
+
+    for (int i = 0; i <= seconds; ++i)
+    {
+        byte j = (int(float(i)/4) % 8);
+        if (i <= 7)
+            drawLine(4, 4, 0, 7-j, 7, 0);
+        else if (i <= 15)
+            drawLine(3, 4, 0, 7-j, 7, 0);
+        else if (i <= 22)
+            drawLine(3, 4, 0, 0, 7-j, 0);
+        else if (i <= 30)
+            drawLine(3, 3, 0, 0, 7-j, 0);
+        else if (i <= 37)
+            drawLine(3, 3, 0, j, 0, 0);
+        else if (i <= 45)
+            drawLine(4, 3, 0, j, 0, 0);
+        else if (i <= 52)
+            drawLine(4, 3, 0, 7, j, 0);
+        else if (i <= 59)
+            drawLine(4, 3, 0, 7, j, 0);
+    }
+}
+
+void CubeController::setClockFrameThreeSideClock()
+{
+    memset(clockFrame, 0, FRAME_LENGTH);
+
+    // Adjust for 12 Hour Format
+    if (hours > 12 )
+    {
+        hours = hours - 12;
+    }
+    else if (hours == 0)
+    {
+        hours = 12;
+    }
+
     // setting hour
     if (hours > 9)
         setPlane(charMap[hours / 10], 7, 7, 0, 5);
@@ -267,7 +351,7 @@ void CubeController::update()
     if (clockEnabled)
     {
         updateTime();
-        setClockFrame();
+        setClockFrameThreeSideClock();
         sendFrameUART(clockFrame);
     }
 }
