@@ -280,6 +280,23 @@
 
                 <div class="clock-controls">
 
+                    <!-- One time animations -->
+                    <div class="control">
+                        <div class="control-title">
+                            One Time Animations
+                        </div>
+
+                        <div class="setting-description">
+                            Display an animation one time on the cube.
+                        </div>
+
+                        <br>
+
+                        <button onclick="showAnimation('fireworks');">
+                            Fireworks
+                        </button>
+                    </div>
+
                     <!-- Automatic browser time -->
                     <div class="control">
                         <div class="control-title">
@@ -441,6 +458,16 @@
                 clockMode.classList.add("hidden");
                 displayMode.classList.remove("hidden");
             }
+        }
+
+        function showAnimation(animation) {
+            fetch("/animation/onetime", {
+                method: "POST",
+                body: animation,
+                headers: {
+                    "Content-type": "text/plain; charset=UTF-8"
+                }
+            });
         }
 
         function sendClockUpdate() {

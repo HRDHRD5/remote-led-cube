@@ -127,10 +127,20 @@ void CubeController::drawLine(byte x1, byte y1, byte z1, byte x2, byte y2, byte 
     float posX = x1;
     float posY = y1;
     float posZ = z1;
-    float deltaX, deltaY, deltaZ;
+    float deltaX, deltaY, deltaZ, deltaFacX, deltaFacY, deltaFacZ;
     float deltaFX = x1-x2;
     float deltaFY = y1-y2;
     float deltaFZ = z1-z2;
+
+    deltaFacX = 1;
+    deltaFacY = 1;
+    deltaFacZ = 1;
+    if (deltaFX > 0)
+        deltaFacX = -1;
+    if (deltaFY > 0)
+        deltaFacY = -1;
+    if (deltaFZ > 0)
+        deltaFacZ = -1;
 
     if (abs(deltaFX) >= abs(deltaFY) && abs(deltaFX) >= abs(deltaFZ))
     {
@@ -151,6 +161,10 @@ void CubeController::drawLine(byte x1, byte y1, byte z1, byte x2, byte y2, byte 
         deltaY = deltaZ * (deltaFY/deltaFZ);
     }
 
+    deltaX *= deltaFacX;
+    deltaY *= deltaFacY;
+    deltaZ *= deltaFacZ;
+
     while (abs(posX-float(x1)) < abs(deltaFX) || abs(posY-float(y1)) < abs(deltaFY) || abs(posZ-float(z1)) < abs(deltaFZ))
     {
         setCoord(round(posX), round(posY), round(posZ), true);
@@ -159,6 +173,11 @@ void CubeController::drawLine(byte x1, byte y1, byte z1, byte x2, byte y2, byte 
         posZ += deltaZ;
     }
     setCoord(x2, y2, z2, true);
+}
+
+void CubeController::drawSphere(byte x1, byte y1, byte z1, byte radius)
+{
+
 }
 
 void CubeController::setClockFrameTwoSideClock()
@@ -346,6 +365,104 @@ void CubeController::sendFrame(const char *frameHex, uint32_t frameLen)
     digitalWrite(LED_BUILTIN, HIGH);
 }
 
+void CubeController::fireworksAnimation()
+{
+    memset(clockFrame, 0, FRAME_LENGTH);
+
+    #define EXPLOSION1 3
+    #define EXPLOSION2 8
+    #define EXPLOSION3 13
+    if (!this->customAnimationVals)
+    {
+        customAnimationVals = new uint32_t[18];
+        customAnimationVals[0] = 0;
+        customAnimationVals[1] = 1000;
+        customAnimationVals[2] = clockEnabled;
+        // different explosions
+        customAnimationVals[EXPLOSION1] = 0;
+        customAnimationVals[EXPLOSION2] = 0;
+        customAnimationVals[EXPLOSION3] = 0;
+        setClockEnabled(false);
+        running_animation = &CubeController::fireworksAnimation;
+    }
+
+    // EXPLOSIONX == Frame Count
+    // EXPLOSIONX+1 == X Coord
+    // EXPLOSIONX+2 == Y Coord
+    // EXPLOSIONX+3 == Max Height
+    // EXPLOSIONX+4 == Explosion Radius
+
+    if (customAnimationVals[EXPLOSION1] == 0 && (customAnimationVals[EXPLOSION3] > 7 || customAnimationVals[EXPLOSION3] == 0))
+    {
+        customAnimationVals[EXPLOSION1] = 1;
+        customAnimationVals[EXPLOSION1+1] = random(1, 6);
+        customAnimationVals[EXPLOSION1+2] = random(1, 6);
+        customAnimationVals[EXPLOSION1+3] = random(3, 6);
+        customAnimationVals[EXPLOSION1+4] = random(2, 4);
+    }
+    else if (customAnimationVals[EXPLOSION2] == 0 && customAnimationVals[EXPLOSION1] > 7)
+    {
+        customAnimationVals[EXPLOSION2] = 1;
+        customAnimationVals[EXPLOSION2+1] = random(1, 6);
+        customAnimationVals[EXPLOSION2+2] = random(1, 6);
+        customAnimationVals[EXPLOSION2+3] = random(3, 6);
+        customAnimationVals[EXPLOSION2+4] = random(2, 4);
+    }
+    else if(customAnimationVals[EXPLOSION3] == 0 && customAnimationVals[EXPLOSION2] > 7)
+    {
+        customAnimationVals[EXPLOSION3] = 1;
+        customAnimationVals[EXPLOSION3+1] = random(1, 6);
+        customAnimationVals[EXPLOSION3+2] = random(1, 6);
+        customAnimationVals[EXPLOSION3+3] = random(3, 6);
+        customAnimationVals[EXPLOSION3+4] = random(2, 4);
+    }
+
+    for (int i = EXPLOSION1; i <= EXPLOSION3; i += 5)
+    {
+        Serial.printf("I: %zu\n", i);
+        Serial.printf("Expl1: %zu; Expl2: %zu; Expl3: %zu\n", customAnimationVals[EXPLOSION1], customAnimationVals[EXPLOSION2], customAnimationVals[EXPLOSION3]);
+        Serial.printf("Expl12: %zu; Expl22: %zu; Expl32: %zu\n", customAnimationVals[EXPLOSION1+1], customAnimationVals[EXPLOSION2+1], customAnimationVals[EXPLOSION3+1]);
+        Serial.printf("Expl13: %zu; Expl23: %zu; Expl33: %zu\n", customAnimationVals[EXPLOSION1+2], customAnimationVals[EXPLOSION2+2], customAnimationVals[EXPLOSION3+2]);
+        Serial.printf("Expl14: %zu; Expl24: %zu; Expl34: %zu\n", customAnimationVals[EXPLOSION1+3], customAnimationVals[EXPLOSION2+3], customAnimationVals[EXPLOSION3+3]);
+
+        if (customAnimationVals[i] == 0)
+        {
+            continue;
+        }
+        if (customAnimationVals[i] < customAnimationVals[i+3])
+        {
+            setCoord(customAnimationVals[i+1], customAnimationVals[i+2], customAnimationVals[i]-1, true);
+        }
+        else if (customAnimationVals[i] < customAnimationVals[i+3]+(customAnimationVals[i+4]*3))
+        {
+            if ((customAnimationVals[i] - customAnimationVals[i+3]) % 3 == 0)
+            {
+                for (int j = 0; j <= (customAnimationVals[i] - customAnimationVals[i+3]) / 3; ++j)
+                {
+                    drawSphere(customAnimationVals[i+1], customAnimationVals[i+2], customAnimationVals[i+3], j);
+                }
+            }
+        }
+        else {
+            customAnimationVals[i] = 0;
+        }
+
+        customAnimationVals[i] += 1;
+    }
+
+    Serial.printf("Frame: %zu; MaxFrame: %zu\n", customAnimationVals[0], customAnimationVals[1]);
+    if (customAnimationVals[0] >= customAnimationVals[1])
+    {
+        setClockEnabled(customAnimationVals[2]);
+        running_animation = nullptr;
+        delete customAnimationVals;
+        customAnimationVals = nullptr;
+        return;
+    }
+
+    customAnimationVals[0] += 1;
+}
+
 void CubeController::update()
 {
     if (clockEnabled)
@@ -353,6 +470,10 @@ void CubeController::update()
         updateTime();
         setClockFrameThreeSideClock();
         sendFrameUART(clockFrame);
+    }
+    else if (running_animation)
+    {
+        //this->CubeController::running_animation();
     }
 }
 

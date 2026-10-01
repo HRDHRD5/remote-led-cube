@@ -21,6 +21,22 @@ void setClockTime()
     websrv.send(200, "text/plain", "New Time Set");
 }
 
+void handleOneTimeAnimation()
+{
+    String animation = websrv.arg("plain");
+    if (animation == "fireworks")
+    {
+        cController.fireworksAnimation();
+    }
+    else
+    {
+        websrv.send(403, "text/plain", "There is no such animation");
+        return;
+    }
+
+    websrv.send(200, "text/plain", "Started Animation");
+}
+
 void setClockEnabled()
 {
     String clockSet = websrv.arg("plain");
@@ -48,6 +64,7 @@ void initWebServer()
     websrv.on("/display", HTTP_POST, handleDisplay);
     websrv.on("/setclock/time", HTTP_POST, setClockTime);
     websrv.on("/setclock/enabled", HTTP_POST, setClockEnabled);
+    websrv.on("/animation/onetime", HTTP_POST, handleOneTimeAnimation);
     websrv.onNotFound(handleNotFound);
     websrv.begin();
 }

@@ -21,6 +21,8 @@ class CubeController
         byte tenSecondAnimationCounter = 1;
         byte minuteAnimationCounter = 1;
         uint32_t hourAnimationCounter = 1;
+        uint32_t *customAnimationVals = nullptr;
+        void (CubeController::*running_animation)() = nullptr;
         const byte planeOn[8] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
         const byte secondsArrowMap[4][8] = {
             {0x0,0x0,0x0,0x18,0x18,0x18,0x18,0x18},
@@ -48,11 +50,15 @@ class CubeController
         void setClockFrameThreeSideClock();
         void setCoord(byte x, byte y, byte z, bool on);
         void drawLine(byte x1, byte y1, byte z1, byte x2, byte y2, byte z2);
+        void drawSphere(byte x1, byte y1, byte z1, byte radius);
     public:
         CubeController(uint32_t _baudRate);
         void sendFrame(const char *frameHex, uint32_t frameLen);
         void update();
         void setBaseTime(uint64_t mills);
         void setClockEnabled(bool enabled);
+
+        // Custom Animations
+        void fireworksAnimation();
 };
 #endif

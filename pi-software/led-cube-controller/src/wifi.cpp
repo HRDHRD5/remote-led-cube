@@ -2,6 +2,7 @@
 
 void WifiController::tryUntilWifiConnected()
 {
+    WiFi.setHostname(WIFI_HOSTNAME);
     if (WiFi.status() == WL_IDLE_STATUS)
     {
         WiFi.begin(wifiSsid, wifiPassword);
