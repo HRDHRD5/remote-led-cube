@@ -28,6 +28,14 @@ void handleOneTimeAnimation()
     {
         cController.fireworksAnimation();
     }
+    else if (animation == "zigzag")
+    {
+        cController.randomZigzagAnimation();
+    }
+    else if (animation == "snake")
+    {
+        cController.snakeAnimation();
+    }
     else
     {
         websrv.send(403, "text/plain", "There is no such animation");

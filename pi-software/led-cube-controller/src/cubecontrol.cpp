@@ -43,6 +43,13 @@ void CubeController::updateTime()
 
 void CubeController::setCoord(byte x, byte y, byte z, bool on)
 {
+    // Make sure coords are not out of rage:
+    if (x > CUBE_SIDE_LENGTH)
+        x = CUBE_SIDE_LENGTH-1;
+    if (y > CUBE_SIDE_LENGTH)
+        y = CUBE_SIDE_LENGTH-1;
+    if (z > CUBE_SIDE_LENGTH)
+        z = CUBE_SIDE_LENGTH-1;
     if (on)
         clockFrame[(8*z)+y] |= (0x80 >> x);
     else
@@ -175,9 +182,19 @@ void CubeController::drawLine(byte x1, byte y1, byte z1, byte x2, byte y2, byte 
     setCoord(x2, y2, z2, true);
 }
 
-void CubeController::drawSphere(byte x1, byte y1, byte z1, byte radius)
+void CubeController::drawSphere(int x, int y, int z, int radius)
 {
-
+    radius = abs(radius);
+    for (int layer = -((int)radius); layer <= radius; ++layer)
+    {
+        for (int planeRadius = -(radius - abs(layer)); planeRadius <= radius - abs(layer); ++planeRadius)
+        {
+            for (int linePosition = -(radius - abs(layer) - abs(planeRadius)); linePosition <= radius - abs(layer) - abs(planeRadius); ++linePosition)
+            {
+                setCoord(x+linePosition, y+planeRadius, z+layer, true);
+            }
+        }
+    }
 }
 
 void CubeController::setClockFrameTwoSideClock()
@@ -365,25 +382,50 @@ void CubeController::sendFrame(const char *frameHex, uint32_t frameLen)
     digitalWrite(LED_BUILTIN, HIGH);
 }
 
+bool CubeController::setupCustomAnimation(uint maxFrames, uint custom_vars, void (CubeController::*caller)())
+{
+    if (!this->customAnimationVals)
+    {
+        customAnimationVals = new uint32_t[3+custom_vars];
+        customAnimationVals[0] = 0;
+        customAnimationVals[1] = maxFrames;
+        customAnimationVals[2] = clockEnabled;
+        setClockEnabled(false);
+        running_animation = caller;
+        return true;
+    }
+    return false;
+}
+
+bool CubeController::endCustomAnimation()
+{
+    if (customAnimationVals[0] >= customAnimationVals[1])
+    {
+        setClockEnabled(customAnimationVals[2]);
+        running_animation = nullptr;
+        delete customAnimationVals;
+        customAnimationVals = nullptr;
+        return true;
+    }
+    customAnimationVals[0] += 1;
+
+    return false;
+}
+
 void CubeController::fireworksAnimation()
 {
     memset(clockFrame, 0, FRAME_LENGTH);
 
+    const int frameFactor = 3;
     #define EXPLOSION1 3
     #define EXPLOSION2 8
     #define EXPLOSION3 13
-    if (!this->customAnimationVals)
+    if (setupCustomAnimation(100*frameFactor, 15, &CubeController::fireworksAnimation))
     {
-        customAnimationVals = new uint32_t[18];
-        customAnimationVals[0] = 0;
-        customAnimationVals[1] = 1000;
-        customAnimationVals[2] = clockEnabled;
         // different explosions
         customAnimationVals[EXPLOSION1] = 0;
         customAnimationVals[EXPLOSION2] = 0;
         customAnimationVals[EXPLOSION3] = 0;
-        setClockEnabled(false);
-        running_animation = &CubeController::fireworksAnimation;
     }
 
     // EXPLOSIONX == Frame Count
@@ -397,83 +439,175 @@ void CubeController::fireworksAnimation()
         customAnimationVals[EXPLOSION1] = 1;
         customAnimationVals[EXPLOSION1+1] = random(1, 6);
         customAnimationVals[EXPLOSION1+2] = random(1, 6);
-        customAnimationVals[EXPLOSION1+3] = random(3, 6);
-        customAnimationVals[EXPLOSION1+4] = random(2, 4);
+        customAnimationVals[EXPLOSION1+3] = random(2, 7);
+        customAnimationVals[EXPLOSION1+4] = random(1, 3);
     }
     else if (customAnimationVals[EXPLOSION2] == 0 && customAnimationVals[EXPLOSION1] > 7)
     {
         customAnimationVals[EXPLOSION2] = 1;
         customAnimationVals[EXPLOSION2+1] = random(1, 6);
         customAnimationVals[EXPLOSION2+2] = random(1, 6);
-        customAnimationVals[EXPLOSION2+3] = random(3, 6);
-        customAnimationVals[EXPLOSION2+4] = random(2, 4);
+        customAnimationVals[EXPLOSION2+3] = random(2, 7);
+        customAnimationVals[EXPLOSION2+4] = random(1, 3);
     }
     else if(customAnimationVals[EXPLOSION3] == 0 && customAnimationVals[EXPLOSION2] > 7)
     {
         customAnimationVals[EXPLOSION3] = 1;
         customAnimationVals[EXPLOSION3+1] = random(1, 6);
         customAnimationVals[EXPLOSION3+2] = random(1, 6);
-        customAnimationVals[EXPLOSION3+3] = random(3, 6);
-        customAnimationVals[EXPLOSION3+4] = random(2, 4);
+        customAnimationVals[EXPLOSION3+3] = random(2, 7);
+        customAnimationVals[EXPLOSION3+4] = random(1, 3);
     }
 
     for (int i = EXPLOSION1; i <= EXPLOSION3; i += 5)
     {
-        Serial.printf("I: %zu\n", i);
-        Serial.printf("Expl1: %zu; Expl2: %zu; Expl3: %zu\n", customAnimationVals[EXPLOSION1], customAnimationVals[EXPLOSION2], customAnimationVals[EXPLOSION3]);
-        Serial.printf("Expl12: %zu; Expl22: %zu; Expl32: %zu\n", customAnimationVals[EXPLOSION1+1], customAnimationVals[EXPLOSION2+1], customAnimationVals[EXPLOSION3+1]);
-        Serial.printf("Expl13: %zu; Expl23: %zu; Expl33: %zu\n", customAnimationVals[EXPLOSION1+2], customAnimationVals[EXPLOSION2+2], customAnimationVals[EXPLOSION3+2]);
-        Serial.printf("Expl14: %zu; Expl24: %zu; Expl34: %zu\n", customAnimationVals[EXPLOSION1+3], customAnimationVals[EXPLOSION2+3], customAnimationVals[EXPLOSION3+3]);
-
+        // make sure that first Frames of count frameFactor are skipped
         if (customAnimationVals[i] == 0)
         {
             continue;
         }
-        if (customAnimationVals[i] < customAnimationVals[i+3])
+        if (customAnimationVals[i]/frameFactor < customAnimationVals[i+3])
         {
-            setCoord(customAnimationVals[i+1], customAnimationVals[i+2], customAnimationVals[i]-1, true);
+            setCoord(customAnimationVals[i+1], customAnimationVals[i+2], (customAnimationVals[i]/frameFactor), true);
         }
-        else if (customAnimationVals[i] < customAnimationVals[i+3]+(customAnimationVals[i+4]*3))
+        else if ((customAnimationVals[i]/frameFactor) <= (customAnimationVals[i+3]+(customAnimationVals[i+4]*3)))
         {
-            if ((customAnimationVals[i] - customAnimationVals[i+3]) % 3 == 0)
-            {
-                for (int j = 0; j <= (customAnimationVals[i] - customAnimationVals[i+3]) / 3; ++j)
-                {
-                    drawSphere(customAnimationVals[i+1], customAnimationVals[i+2], customAnimationVals[i+3], j);
-                }
-            }
+            int currentRadius = ((customAnimationVals[i]/frameFactor) - customAnimationVals[i+3])/3;
+            drawSphere(customAnimationVals[i+1], customAnimationVals[i+2], customAnimationVals[i+3], currentRadius);
         }
         else {
             customAnimationVals[i] = 0;
+            continue;
         }
 
         customAnimationVals[i] += 1;
     }
 
-    Serial.printf("Frame: %zu; MaxFrame: %zu\n", customAnimationVals[0], customAnimationVals[1]);
-    if (customAnimationVals[0] >= customAnimationVals[1])
+    endCustomAnimation();
+}
+
+void CubeController::randomZigzagAnimation()
+{
+    memset(clockFrame, 0, FRAME_LENGTH);
+
+    const int frameFactor = 1;
+    #define ZIGZAG_POS_X 3
+    #define ZIGZAG_POS_Y 4
+    #define ZIGZAG_POS_Z 5
+
+    if (setupCustomAnimation(150*frameFactor, 3, &CubeController::randomZigzagAnimation))
     {
-        setClockEnabled(customAnimationVals[2]);
-        running_animation = nullptr;
-        delete customAnimationVals;
-        customAnimationVals = nullptr;
-        return;
+        // ZigZag Coordinats. Each is with an offset of 1
+        customAnimationVals[ZIGZAG_POS_X] = 4;
+        customAnimationVals[ZIGZAG_POS_Y] = 4;
+        customAnimationVals[ZIGZAG_POS_Z] = 4;
     }
 
-    customAnimationVals[0] += 1;
+    if (customAnimationVals[0] % frameFactor == 0)
+    {
+        // 0 equals x pos, 1 equals x neg
+        // 2 equals y pos, 3 equals y neg
+        // 4 equals z pos, 5 equals z neg
+        int direction = random(0,5);
+
+        if (direction % 2 == 0)
+            customAnimationVals[ZIGZAG_POS_X + (direction/2)]+=1;
+        else
+            customAnimationVals[ZIGZAG_POS_X + (direction/2)]-=1;
+
+        // if postion moves out of bounds, just wrap around
+        for (int i = 0; i < 3; ++i)
+        {
+            if (customAnimationVals[ZIGZAG_POS_X+i] < 1)
+                customAnimationVals[ZIGZAG_POS_X+i] = CUBE_SIDE_LENGTH;
+            else if (customAnimationVals[ZIGZAG_POS_X+i] > CUBE_SIDE_LENGTH)
+                customAnimationVals[ZIGZAG_POS_X+i] = 1;
+        }
+    }
+
+    setCoord(customAnimationVals[ZIGZAG_POS_X]-1, customAnimationVals[ZIGZAG_POS_Y]-1, customAnimationVals[ZIGZAG_POS_Z]-1, true);
+
+    endCustomAnimation();
+}
+
+void CubeController::snakeAnimation()
+{
+    memset(clockFrame, 0, FRAME_LENGTH);
+
+    const int frameFactor = 8;
+    #define SNAKE_LINKS_COUNT 4
+    #define SNAKE_POS_X 3
+    #define SNAKE_POS_Y 4
+    #define SNAKE_POS_Z 5
+
+    if (setupCustomAnimation(150*frameFactor, 3*SNAKE_LINKS_COUNT, &CubeController::snakeAnimation))
+    {
+        // ZigZag Coordinats. Each is with an offset of 1
+        memset(customAnimationVals+SNAKE_POS_X, 4, 3*SNAKE_LINKS_COUNT);
+    }
+
+    if (customAnimationVals[0] % frameFactor == 0)
+    {
+        bool moved = false;
+        while (!moved)
+        {
+            // shift coords to the next link in the snake
+            for (int i = 3*(SNAKE_LINKS_COUNT-2); i >= 0; i-=3)
+            {
+                customAnimationVals[SNAKE_POS_X+i+3] = customAnimationVals[SNAKE_POS_X+i];
+                customAnimationVals[SNAKE_POS_Y+i+3] = customAnimationVals[SNAKE_POS_Y+i];
+                customAnimationVals[SNAKE_POS_Z+i+3] = customAnimationVals[SNAKE_POS_Z+i];
+            }
+
+            // 0 equals x pos, 1 equals x neg
+            // 2 equals y pos, 3 equals y neg
+            // 4 equals z pos, 5 equals z neg
+            int direction = random(0,5);
+
+            int newCoord;
+            uint changingCoord = SNAKE_POS_X + (direction/2);
+            if (direction % 2 == 0)
+                newCoord = customAnimationVals[changingCoord] + 1;
+            else
+                newCoord = customAnimationVals[changingCoord] - 1;
+
+            // check if Snake moves back into itself
+            if (newCoord == customAnimationVals[changingCoord+3])
+                continue; // repeat random direction process
+
+            customAnimationVals[changingCoord] = newCoord;
+
+            // if postion moves out of bounds, just wrap around
+            for (int i = 0; i < 3; ++i)
+            {
+                if (customAnimationVals[SNAKE_POS_X+i] < 1)
+                    customAnimationVals[SNAKE_POS_X+i] = CUBE_SIDE_LENGTH;
+                else if (customAnimationVals[SNAKE_POS_X+i] > CUBE_SIDE_LENGTH)
+                    customAnimationVals[SNAKE_POS_X+i] = 1;
+            }
+
+            moved = true;
+        }
+    }
+
+    for (int link = 0; link < SNAKE_LINKS_COUNT*3; link+=3)
+        setCoord(customAnimationVals[SNAKE_POS_X+link]-1, customAnimationVals[SNAKE_POS_Y+link]-1, customAnimationVals[SNAKE_POS_Z+link]-1, true);
+
+    endCustomAnimation();
 }
 
 void CubeController::update()
 {
+    updateTime();
     if (clockEnabled)
     {
-        updateTime();
         setClockFrameThreeSideClock();
         sendFrameUART(clockFrame);
     }
     else if (running_animation)
     {
-        //this->CubeController::running_animation();
+        (this->*CubeController::running_animation)();
+        sendFrameUART(clockFrame);
     }
 }
 

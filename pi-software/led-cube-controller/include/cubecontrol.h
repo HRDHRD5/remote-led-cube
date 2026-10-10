@@ -50,15 +50,19 @@ class CubeController
         void setClockFrameThreeSideClock();
         void setCoord(byte x, byte y, byte z, bool on);
         void drawLine(byte x1, byte y1, byte z1, byte x2, byte y2, byte z2);
-        void drawSphere(byte x1, byte y1, byte z1, byte radius);
+        void drawSphere(int x, int y, int z, int radius);
     public:
         CubeController(uint32_t _baudRate);
         void sendFrame(const char *frameHex, uint32_t frameLen);
         void update();
         void setBaseTime(uint64_t mills);
         void setClockEnabled(bool enabled);
+        bool setupCustomAnimation(uint maxFrames, uint custom_vars, void (CubeController::*caller)());
+        bool endCustomAnimation();
 
         // Custom Animations
         void fireworksAnimation();
+        void randomZigzagAnimation();
+        void snakeAnimation();
 };
 #endif
