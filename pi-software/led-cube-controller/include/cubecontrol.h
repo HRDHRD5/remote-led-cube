@@ -7,6 +7,21 @@
 
 #include "constants.h"
 
+enum CubeMode
+{
+    CUBEMODE_OFF,
+    CUBEMODE_CLOCK,
+    CUBEMODE_ANIMATION,
+    CUBEMODE_ANIMATIONPROVIDER,
+    CUBEMODE_REMOTE
+};
+
+class AnimationProvider
+{
+    public:
+        virtual void update();
+};
+
 class CubeController
 {
     private:
@@ -16,13 +31,14 @@ class CubeController
         byte hours = 0;
         byte minutes = 0;
         byte seconds = 0;
-        bool clockEnabled = true;
-        byte clockFrame[FRAME_LENGTH];
+        CubeMode mode = CUBEMODE_CLOCK;
+        byte cubeFrame[FRAME_LENGTH];
         byte tenSecondAnimationCounter = 1;
         byte minuteAnimationCounter = 1;
         uint32_t hourAnimationCounter = 1;
         uint32_t *customAnimationVals = nullptr;
         void (CubeController::*running_animation)() = nullptr;
+        AnimationProvider* currentAnimationProv = nullptr;
         const byte planeOn[8] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
         const byte secondsArrowMap[4][8] = {
             {0x0,0x0,0x0,0x18,0x18,0x18,0x18,0x18},
@@ -45,18 +61,24 @@ class CubeController
 
         void sendFrameUART(const byte frame[FRAME_LENGTH]);
         void updateTime();
-        void setPlane(const byte plane[8], const int x, const int y, const int z, byte orientation);
         void setClockFrameTwoSideClock();
         void setClockFrameThreeSideClock();
+    public:
+        const byte* getNumberChar(uint number); // returns byte[8]
+        void clear();
+        void setPlane(const byte plane[8], const int x, const int y, const int z, byte orientation);
         void setCoord(byte x, byte y, byte z, bool on);
         void drawLine(byte x1, byte y1, byte z1, byte x2, byte y2, byte z2);
         void drawSphere(int x, int y, int z, int radius);
-    public:
         CubeController(uint32_t _baudRate);
         void sendFrame(const char *frameHex, uint32_t frameLen);
         void update();
+        bool animationRunning();
         void setBaseTime(uint64_t mills);
-        void setClockEnabled(bool enabled);
+        CubeMode getCubeMode();
+        void setCubeMode(CubeMode _mode);
+        void registerAnimationProvider(AnimationProvider* _animation);
+        void unregisterAnimationProvider();
         bool setupCustomAnimation(uint maxFrames, uint custom_vars, void (CubeController::*caller)());
         bool endCustomAnimation();
 

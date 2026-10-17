@@ -51,9 +51,22 @@ void CubeController::setCoord(byte x, byte y, byte z, bool on)
     if (z > CUBE_SIDE_LENGTH)
         z = CUBE_SIDE_LENGTH-1;
     if (on)
-        clockFrame[(8*z)+y] |= (0x80 >> x);
+        cubeFrame[(8*z)+y] |= (0x80 >> x);
     else
-        clockFrame[(8*z)+y] &= (0x80 >> x ^ 0xFF);
+        cubeFrame[(8*z)+y] &= (0x80 >> x ^ 0xFF);
+}
+
+void CubeController::clear()
+{
+    memset(cubeFrame, 0, FRAME_LENGTH);
+}
+
+const byte* CubeController::getNumberChar(uint number)
+{
+    if (number > 9)
+        return nullptr;
+
+    return charMap[number];
 }
 
 void CubeController::setPlane(const byte plane[8], const int x, const int y, const int z, byte orientation)
@@ -199,7 +212,7 @@ void CubeController::drawSphere(int x, int y, int z, int radius)
 
 void CubeController::setClockFrameTwoSideClock()
 {
-    memset(clockFrame, 0, FRAME_LENGTH);
+    clear();
     if (hours > 9)
         setPlane(charMap[hours / 10], 0, 7, 0, 1);
     setPlane(charMap[hours % 10], 4, 7, 0, 1);
@@ -231,7 +244,7 @@ void CubeController::setClockFrameTwoSideClock()
 
 void CubeController::setClockFrameThreeSideClock()
 {
-    memset(clockFrame, 0, FRAME_LENGTH);
+    clear();
 
     // Adjust for 12 Hour Format
     if (hours > 12 )
@@ -354,7 +367,7 @@ void CubeController::setClockFrameThreeSideClock()
 
 void CubeController::sendFrame(const char *frameHex, uint32_t frameLen)
 {
-    if (clockEnabled)
+    if (mode)
     {
         return;
     }
@@ -386,11 +399,12 @@ bool CubeController::setupCustomAnimation(uint maxFrames, uint custom_vars, void
 {
     if (!this->customAnimationVals)
     {
+        randomSeed(millis());
         customAnimationVals = new uint32_t[3+custom_vars];
         customAnimationVals[0] = 0;
         customAnimationVals[1] = maxFrames;
-        customAnimationVals[2] = clockEnabled;
-        setClockEnabled(false);
+        customAnimationVals[2] = mode;
+        setCubeMode(CUBEMODE_ANIMATION);
         running_animation = caller;
         return true;
     }
@@ -401,7 +415,7 @@ bool CubeController::endCustomAnimation()
 {
     if (customAnimationVals[0] >= customAnimationVals[1])
     {
-        setClockEnabled(customAnimationVals[2]);
+        setCubeMode(CubeMode(customAnimationVals[2]));
         running_animation = nullptr;
         delete customAnimationVals;
         customAnimationVals = nullptr;
@@ -414,7 +428,7 @@ bool CubeController::endCustomAnimation()
 
 void CubeController::fireworksAnimation()
 {
-    memset(clockFrame, 0, FRAME_LENGTH);
+    clear();
 
     const int frameFactor = 3;
     #define EXPLOSION1 3
@@ -488,51 +502,58 @@ void CubeController::fireworksAnimation()
 
 void CubeController::randomZigzagAnimation()
 {
-    memset(clockFrame, 0, FRAME_LENGTH);
+    clear();
 
     const int frameFactor = 1;
+    #define ZIGZAG_COUNT 100
     #define ZIGZAG_POS_X 3
     #define ZIGZAG_POS_Y 4
     #define ZIGZAG_POS_Z 5
 
-    if (setupCustomAnimation(150*frameFactor, 3, &CubeController::randomZigzagAnimation))
+    if (setupCustomAnimation(150*frameFactor, 3*ZIGZAG_COUNT, &CubeController::randomZigzagAnimation))
     {
         // ZigZag Coordinats. Each is with an offset of 1
-        customAnimationVals[ZIGZAG_POS_X] = 4;
-        customAnimationVals[ZIGZAG_POS_Y] = 4;
-        customAnimationVals[ZIGZAG_POS_Z] = 4;
-    }
-
-    if (customAnimationVals[0] % frameFactor == 0)
-    {
-        // 0 equals x pos, 1 equals x neg
-        // 2 equals y pos, 3 equals y neg
-        // 4 equals z pos, 5 equals z neg
-        int direction = random(0,5);
-
-        if (direction % 2 == 0)
-            customAnimationVals[ZIGZAG_POS_X + (direction/2)]+=1;
-        else
-            customAnimationVals[ZIGZAG_POS_X + (direction/2)]-=1;
-
-        // if postion moves out of bounds, just wrap around
-        for (int i = 0; i < 3; ++i)
+        for (int i = 0; i < ZIGZAG_COUNT; ++i)
         {
-            if (customAnimationVals[ZIGZAG_POS_X+i] < 1)
-                customAnimationVals[ZIGZAG_POS_X+i] = CUBE_SIDE_LENGTH;
-            else if (customAnimationVals[ZIGZAG_POS_X+i] > CUBE_SIDE_LENGTH)
-                customAnimationVals[ZIGZAG_POS_X+i] = 1;
+            customAnimationVals[ZIGZAG_POS_X+i] = random(0, 7);
+            customAnimationVals[ZIGZAG_POS_Y+i] = random(0, 7);
+            customAnimationVals[ZIGZAG_POS_Z+i] = random(0, 7);
         }
     }
 
-    setCoord(customAnimationVals[ZIGZAG_POS_X]-1, customAnimationVals[ZIGZAG_POS_Y]-1, customAnimationVals[ZIGZAG_POS_Z]-1, true);
+    for (int z = 0; z < ZIGZAG_COUNT*3; z+=3)
+    {
+        if (customAnimationVals[0] % frameFactor == 0)
+        {
+            // 0 equals x pos, 1 equals x neg
+            // 2 equals y pos, 3 equals y neg
+            // 4 equals z pos, 5 equals z neg
+            int direction = random(0,5);
+
+            if (direction % 2 == 0)
+                customAnimationVals[(ZIGZAG_POS_X+z) + (direction/2)]+=1;
+            else
+                customAnimationVals[(ZIGZAG_POS_X+z) + (direction/2)]-=1;
+
+            // if postion moves out of bounds, just wrap around
+            for (int i = 0; i < 3; ++i)
+            {
+                if (customAnimationVals[ZIGZAG_POS_X+z+i] < 1)
+                    customAnimationVals[ZIGZAG_POS_X+z+i] = CUBE_SIDE_LENGTH;
+                else if (customAnimationVals[ZIGZAG_POS_X+z+i] > CUBE_SIDE_LENGTH)
+                    customAnimationVals[ZIGZAG_POS_X+z+i] = 1;
+            }
+        }
+
+        setCoord(customAnimationVals[ZIGZAG_POS_X+z]-1, customAnimationVals[ZIGZAG_POS_Y+z]-1, customAnimationVals[ZIGZAG_POS_Z+z]-1, true);
+    }
 
     endCustomAnimation();
 }
 
 void CubeController::snakeAnimation()
 {
-    memset(clockFrame, 0, FRAME_LENGTH);
+    clear();
 
     const int frameFactor = 8;
     #define SNAKE_LINKS_COUNT 4
@@ -599,16 +620,46 @@ void CubeController::snakeAnimation()
 void CubeController::update()
 {
     updateTime();
-    if (clockEnabled)
+    if (mode == CUBEMODE_OFF)
+    {
+        clear();
+        sendFrameUART(cubeFrame);
+        return;
+    }
+    else if (mode == CUBEMODE_CLOCK)
     {
         setClockFrameThreeSideClock();
-        sendFrameUART(clockFrame);
+        sendFrameUART(cubeFrame);
     }
-    else if (running_animation)
+    else if (mode == CUBEMODE_ANIMATION)
     {
-        (this->*CubeController::running_animation)();
-        sendFrameUART(clockFrame);
+        if (running_animation)
+        {
+            (this->*CubeController::running_animation)();
+            sendFrameUART(cubeFrame);
+        }
+        else
+        {
+            mode = CUBEMODE_OFF;
+        }
     }
+    else if (mode == CUBEMODE_ANIMATIONPROVIDER)
+    {
+        if (currentAnimationProv)
+        {
+            currentAnimationProv->update();
+            sendFrameUART(cubeFrame);
+        }
+        else
+        {
+            mode = CUBEMODE_OFF;
+        }
+    }
+}
+
+bool CubeController::animationRunning()
+{
+    return running_animation != nullptr;
 }
 
 void CubeController::setBaseTime(uint64_t mills)
@@ -617,9 +668,29 @@ void CubeController::setBaseTime(uint64_t mills)
     millisBaseTime = mills;
 }
 
-void CubeController::setClockEnabled(bool enabled)
+CubeMode CubeController::getCubeMode()
 {
-    clockEnabled = enabled;
+    return mode;
+}
+
+void CubeController::setCubeMode(CubeMode _mode)
+{
+    mode = _mode;
+}
+
+void CubeController::registerAnimationProvider(AnimationProvider* _animation)
+{
+    currentAnimationProv = _animation;
+    setCubeMode(CUBEMODE_ANIMATIONPROVIDER);
+}
+
+void CubeController::unregisterAnimationProvider()
+{
+    if (currentAnimationProv)
+    {
+        currentAnimationProv = nullptr;
+        mode = CUBEMODE_OFF;
+    }
 }
 
 CubeController::CubeController(uint32_t _baudRate)

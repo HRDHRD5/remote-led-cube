@@ -120,6 +120,64 @@
             transform: translateX(22px);
         }
 
+        /* Dropdown */
+
+        .dropdown {
+            width: 100%;
+            padding: 12px 40px 12px 12px;
+            appearance: none;
+            -webkit-appearance: none;
+
+            background-color: var(--background);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+
+            font-family: inherit;
+            font-size: 16px;
+            cursor: pointer;
+
+            /* Custom dropdown arrow */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%238b949e' d='M4 6l4 4 4-4z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        /* Hover */
+        .dropdown:hover {
+            border-color: var(--muted);
+        }
+
+        /* Focus */
+        .dropdown:focus {
+            outline: none;
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.25);
+        }
+
+        /* Dropdown options */
+        .dropdown option {
+            background-color: var(--surface);
+            color: var(--text);
+        }
+
+        /* Disabled dropdown */
+        .dropdown:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Optional dropdown label */
+        .dropdown-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text);
+            font-size: 14px;
+        }
+
         /* Clock */
 
         .clock-container {
@@ -256,19 +314,25 @@
                 Configure the clock displayed by the system.
             </p>
 
-            <!-- Enable / disable clock -->
+            <!-- Change cube mode -->
             <div class="setting">
                 <div>
-                    <div class="setting-title">Clock</div>
+                    <div class="setting-title">Mode</div>
                     <div class="setting-description">
-                        Enable or disable clock mode.
+                        Change the display mode for the cube.
                     </div>
                 </div>
 
-                <label class="toggle">
-                    <input type="checkbox" id="clockEnabled">
-                    <span class="slider"></span>
+                <label for="cube-mode" class="dropdown-label">
+                    Mode
                 </label>
+
+                <select id="cube-mode" class="dropdown" name="cube-mode">
+                    <option value="off">Off</option>
+                    <option value="clock">Clock</option>
+                    <option value="pong">Pong Game</option>
+                    <option value="remote">Live Packets</option>
+                </select>
             </div>
 
             <!-- Clock enabled -->
@@ -347,9 +411,9 @@
                 </div>
             </div>
 
-            <!-- Clock disabled -->
+            <!-- Remote Packets Mode -->
             <div id="displayMode" class="display-endpoint hidden">
-                <strong>Clock is disabled</strong>
+                <strong>Remote Mode</strong>
 
                 <div class="endpoint">/display</div>
 
@@ -359,15 +423,34 @@
                 </p>
             </div>
 
+            <!-- Cube disabled -->
+            <div id="disabledMode" class="display-endpoint hidden">
+                <strong>Off</strong>
+
+                <p>
+                    The Cube is Off right now. Nothing is being displayed.
+                </p>
+            </div>
+
+            <!-- Pong Game Mode -->
+            <div id="pongGameMode" class="display-endpoint hidden">
+                <strong>Pong Game</strong>
+
+                <p>
+                    Lets play Pong!
+                </p>
+            </div>
         </div>
     </div>
 
     <script>
         "use strict";
 
-        const clockEnabled = document.getElementById("clockEnabled");
+        const cubeMode = document.getElementById("cube-mode");
         const clockMode = document.getElementById("clockMode");
         const displayMode = document.getElementById("displayMode");
+        const disabledMode = document.getElementById("disabledMode");
+        const pongGameMode = document.getElementById("pongGameMode");
 
         const clock = document.getElementById("clock");
 
@@ -435,7 +518,7 @@
          * Update the visible clock.
          */
         function updateClock() {
-            if (!clockEnabled.checked) {
+            if (cubeMode.value != "clock") {
                 return;
             }
 
@@ -445,27 +528,63 @@
             return time;
         }
 
+        /*
+         * Make every section invisible except the one given as argument.
+         */
+        function loadMode() {
+            fetch("/cube/getmode", {
+                method: "GET",
+                headers: {
+                    "Content-type": "text/plain; charset=UTF-8"
+                }
+            }).then(response => {
+                response.text().then(data => {
+                    cubeMode.value = data;
+                });
+            });
+            
+            if (cubeMode.value == "clock")
+            {
+                clockMode.classList.remove("hidden");
+                displayMode.classList.add("hidden");
+                disabledMode.classList.add("hidden");
+                pongGameMode.classList.add("hidden");
+            }
+            else if (cubeMode.value == "remote")
+            {
+                clockMode.classList.add("hidden");
+                displayMode.classList.remove("hidden");
+                disabledMode.classList.add("hidden");
+                pongGameMode.classList.add("hidden");
+            }
+            else if (cubeMode.value == "pong")
+            {
+                clockMode.classList.add("hidden");
+                displayMode.classList.add("hidden");
+                disabledMode.classList.add("hidden");
+                pongGameMode.classList.remove("hidden");
+            }
+            else
+            {
+                clockMode.classList.add("hidden");
+                displayMode.classList.add("hidden");
+                disabledMode.classList.remove("hidden");
+                pongGameMode.classList.add("hidden");
+            }
+        }
 
         /*
          * Switch between enabled clock mode and disabled display mode.
          */
         function updateMode() {
-            fetch("/setclock/enabled", {
+            fetch("/cube/setmode", {
                 method: "POST",
-                body: clockEnabled.checked ? "true" : "false",
+                body: cubeMode.value,
                 headers: {
                     "Content-type": "text/plain; charset=UTF-8"
                 }
             });
-            if (clockEnabled.checked) {
-                clockMode.classList.remove("hidden");
-                displayMode.classList.add("hidden");
-
-                updateClock();
-            } else {
-                clockMode.classList.add("hidden");
-                displayMode.classList.remove("hidden");
-            }
+            loadMode();
         }
 
         function showAnimation(animation) {
@@ -542,7 +661,7 @@
         /*
          * Enable / disable clock mode.
          */
-        clockEnabled.addEventListener("change", updateMode);
+        cubeMode.addEventListener("change", updateMode);
 
 
         /*
