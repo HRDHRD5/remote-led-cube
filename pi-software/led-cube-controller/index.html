@@ -330,6 +330,7 @@
                 <select id="cube-mode" class="dropdown" name="cube-mode">
                     <option value="off">Off</option>
                     <option value="clock">Clock</option>
+                    <option value="animation">Constant Animation</option>
                     <option value="pong">Pong Game</option>
                     <option value="remote">Live Packets</option>
                 </select>
@@ -362,6 +363,10 @@
 
                         <button onclick="showAnimation('zigzag');">
                             ZigZag
+                        </button>
+
+                        <button onclick="showAnimation('glow');">
+                            Glow
                         </button>
 
                         <button onclick="showAnimation('snake');">
@@ -411,6 +416,39 @@
                 </div>
             </div>
 
+            <!-- Constant Animation enabled -->
+            <div id="constAnimation">
+
+                <div class="clock-controls">
+
+                    <!-- Animation Select -->
+                    <div class="control">
+                        <div class="control-title">
+                            Animation
+                        </div>
+
+                        <div class="setting-description">
+                            Select an animation to display constantly.
+                        </div>
+
+                        <br>
+
+                        <label for="cube-animation" class="dropdown-label">
+                            Animation
+                        </label>
+
+                        <select id="cube-animation" class="dropdown" name="cube-mode">
+                            <option value="fireworks">Fireworks</option>
+                            <option value="zigzag">ZigZag</option>
+                            <option value="glow">Glow</option>
+                            <option value="snake">Snake</option>
+                        </select>
+
+                    </div>
+
+                </div>
+            </div>
+
             <!-- Remote Packets Mode -->
             <div id="displayMode" class="display-endpoint hidden">
                 <strong>Remote Mode</strong>
@@ -447,7 +485,9 @@
         "use strict";
 
         const cubeMode = document.getElementById("cube-mode");
+        const cubeAnimation = document.getElementById("cube-animation");
         const clockMode = document.getElementById("clockMode");
+        const animationMode = document.getElementById("constAnimation");
         const displayMode = document.getElementById("displayMode");
         const disabledMode = document.getElementById("disabledMode");
         const pongGameMode = document.getElementById("pongGameMode");
@@ -542,10 +582,24 @@
                     cubeMode.value = data;
                 });
             });
-            
+
+            if (cubeMode.value != "animation")
+            {
+                stopAnimation();
+            }
+
             if (cubeMode.value == "clock")
             {
                 clockMode.classList.remove("hidden");
+                animationMode.classList.add("hidden");
+                displayMode.classList.add("hidden");
+                disabledMode.classList.add("hidden");
+                pongGameMode.classList.add("hidden");
+            }
+            else if (cubeMode.value == "animation")
+            {
+                clockMode.classList.add("hidden");
+                animationMode.classList.remove("hidden");
                 displayMode.classList.add("hidden");
                 disabledMode.classList.add("hidden");
                 pongGameMode.classList.add("hidden");
@@ -553,6 +607,7 @@
             else if (cubeMode.value == "remote")
             {
                 clockMode.classList.add("hidden");
+                animationMode.classList.add("hidden");
                 displayMode.classList.remove("hidden");
                 disabledMode.classList.add("hidden");
                 pongGameMode.classList.add("hidden");
@@ -560,6 +615,7 @@
             else if (cubeMode.value == "pong")
             {
                 clockMode.classList.add("hidden");
+                animationMode.classList.add("hidden");
                 displayMode.classList.add("hidden");
                 disabledMode.classList.add("hidden");
                 pongGameMode.classList.remove("hidden");
@@ -567,6 +623,7 @@
             else
             {
                 clockMode.classList.add("hidden");
+                animationMode.classList.add("hidden");
                 displayMode.classList.add("hidden");
                 disabledMode.classList.remove("hidden");
                 pongGameMode.classList.add("hidden");
@@ -585,6 +642,25 @@
                 }
             });
             loadMode();
+        }
+
+        function stopAnimation() {
+            fetch("/animation/stop", {
+                method: "POST",
+                headers: {
+                    "Content-type": "text/plain; charset=UTF-8"
+                }
+            });
+        }
+
+        function updateAnimation() {
+            fetch("/animation/start", {
+                method: "POST",
+                body: cubeAnimation.value,
+                headers: {
+                    "Content-type": "text/plain; charset=UTF-8"
+                }
+            });
         }
 
         function showAnimation(animation) {
@@ -663,6 +739,8 @@
          */
         cubeMode.addEventListener("change", updateMode);
 
+
+        cubeAnimation.addEventListener("change", updateAnimation);
 
         /*
          * Keep the clock running.

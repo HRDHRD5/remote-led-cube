@@ -12,6 +12,7 @@ enum CubeMode
     CUBEMODE_OFF,
     CUBEMODE_CLOCK,
     CUBEMODE_ANIMATION,
+    CUBEMODE_CONSTANIMATION,
     CUBEMODE_ANIMATIONPROVIDER,
     CUBEMODE_REMOTE
 };
@@ -28,6 +29,8 @@ class CubeController
         uint32_t baudRate;
         uint64_t millisBaseTime;
         uint64_t timeOffset = 0;
+        uint animationMaxFrame = 0;
+        byte frameFactor = 0;
         byte hours = 0;
         byte minutes = 0;
         byte seconds = 0;
@@ -67,6 +70,7 @@ class CubeController
         const byte* getNumberChar(uint number); // returns byte[8]
         void clear();
         void setPlane(const byte plane[8], const int x, const int y, const int z, byte orientation);
+        void setCoordBrightness(byte x, byte y, byte z, byte brightness);
         void setCoord(byte x, byte y, byte z, bool on);
         void drawLine(byte x1, byte y1, byte z1, byte x2, byte y2, byte z2);
         void drawSphere(int x, int y, int z, int radius);
@@ -81,10 +85,14 @@ class CubeController
         void unregisterAnimationProvider();
         bool setupCustomAnimation(uint maxFrames, uint custom_vars, void (CubeController::*caller)());
         bool endCustomAnimation();
+        bool startAnimation(String name);
+        void stopRunningAnimation();
+        void setAnimationLengthAlmostToInfinity();
 
         // Custom Animations
         void fireworksAnimation();
         void randomZigzagAnimation();
+        void glowAnimation();
         void snakeAnimation();
 };
 #endif

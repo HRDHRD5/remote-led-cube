@@ -26,25 +26,35 @@ void setClockTime()
 void handleOneTimeAnimation()
 {
     String animation = websrv.arg("plain");
-    if (animation == "fireworks")
-    {
-        cController.fireworksAnimation();
-    }
-    else if (animation == "zigzag")
-    {
-        cController.randomZigzagAnimation();
-    }
-    else if (animation == "snake")
-    {
-        cController.snakeAnimation();
-    }
-    else
+    if (!cController.startAnimation(animation))
     {
         websrv.send(403, "text/plain", "There is no such animation");
         return;
     }
 
     websrv.send(200, "text/plain", "Started Animation");
+}
+
+void handleConstantAnimationStart()
+{
+    String animation = websrv.arg("plain");
+    cController.stopRunningAnimation();
+    cController.setAnimationLengthAlmostToInfinity();
+    cController.setCubeMode(CUBEMODE_CONSTANIMATION);
+    if (!cController.startAnimation(animation))
+    {
+        websrv.send(403, "text/plain", "There is no such animation");
+        return;
+    }
+
+    websrv.send(200, "text/plain", "Started Animation");
+}
+
+void handleConstantAnimationStop()
+{
+    cController.stopRunningAnimation();
+
+    websrv.send(200, "text/plain", "Stopped Animation");
 }
 
 void setCubeMode()
@@ -66,6 +76,8 @@ void setCubeMode()
 
     if (clockSet == "clock")
         cController.setCubeMode(CUBEMODE_CLOCK);
+    else if (clockSet == "animation")
+        cController.setCubeMode(CUBEMODE_CONSTANIMATION);
     else if (clockSet == "pong")
     {
         currentPongGame = PongGame::create(&cController);
@@ -87,6 +99,8 @@ void getCubeMode()
     if (cController.getCubeMode() == CUBEMODE_CLOCK ||
         cController.getCubeMode() == CUBEMODE_ANIMATION)
         mode = "clock";
+    else if (cController.getCubeMode() == CUBEMODE_CONSTANIMATION)
+        mode = "animation";
     else if (cController.getCubeMode() == CUBEMODE_REMOTE)
         mode = "remote";
     else if (cController.getCubeMode() == CUBEMODE_ANIMATIONPROVIDER)
@@ -135,6 +149,8 @@ void initWebServer()
     websrv.on("/cube/getmode", HTTP_GET, getCubeMode);
     websrv.on("/pong/join", HTTP_POST, pongJoinGame);
     websrv.on("/animation/onetime", HTTP_POST, handleOneTimeAnimation);
+    websrv.on("/animation/start", HTTP_POST, handleConstantAnimationStart);
+    websrv.on("/animation/stop", HTTP_POST, handleConstantAnimationStop);
     websrv.onNotFound(handleNotFound);
     websrv.begin();
 }

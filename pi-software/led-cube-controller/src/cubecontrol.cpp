@@ -25,12 +25,10 @@ byte hexToByte(const char number[2])
 void CubeController::sendFrameUART(const byte frame[FRAME_LENGTH])
 {
     Serial1.write(0xf2); // batch update supported
-    for (byte i = 0; i < FRAME_LENGTH; i++)
+    for (uint32_t i = 0; i < FRAME_LENGTH; i++)
     {
         Serial1.write(frame[i]);
     }
-    // minimum update latency
-    delay(20);
 }
 
 void CubeController::updateTime()
@@ -41,7 +39,7 @@ void CubeController::updateTime()
     seconds = time % 60;
 }
 
-void CubeController::setCoord(byte x, byte y, byte z, bool on)
+void CubeController::setCoordBrightness(byte x, byte y, byte z, byte brightness)
 {
     // Make sure coords are not out of rage:
     if (x > CUBE_SIDE_LENGTH)
@@ -50,10 +48,21 @@ void CubeController::setCoord(byte x, byte y, byte z, bool on)
         y = CUBE_SIDE_LENGTH-1;
     if (z > CUBE_SIDE_LENGTH)
         z = CUBE_SIDE_LENGTH-1;
+    for (int i = 0; i < BRIGHTNESS_BITS; ++i)
+    {
+        if (brightness & (0x01 << i))
+            cubeFrame[(z*CUBE_SIDE_LENGTH*BRIGHTNESS_BITS)+(y*BRIGHTNESS_BITS)+i] |= (0x80 >> x);
+        else
+            cubeFrame[(z*CUBE_SIDE_LENGTH*BRIGHTNESS_BITS)+(y*BRIGHTNESS_BITS)+i] &= (0x80 >> x ^ 0xFF);
+    }
+}
+
+void CubeController::setCoord(byte x, byte y, byte z, bool on)
+{
     if (on)
-        cubeFrame[(8*z)+y] |= (0x80 >> x);
+        setCoordBrightness(x, y, z, pow(2, BRIGHTNESS_BITS) - 1);
     else
-        cubeFrame[(8*z)+y] &= (0x80 >> x ^ 0xFF);
+        setCoordBrightness(x, y, z, 0);
 }
 
 void CubeController::clear()
@@ -258,14 +267,14 @@ void CubeController::setClockFrameThreeSideClock()
 
     // setting hour
     if (hours > 9)
-        setPlane(charMap[hours / 10], 7, 7, 0, 5);
-    setPlane(charMap[hours % 10], 7, 4, 0, 5);
+        setPlane(charMap[hours / 10], 7, 2, 0, 2);
+    setPlane(charMap[hours % 10], 7, 5, 0, 2);
     // setting minutes
-    setPlane(charMap[minutes / 10], 7, 0, 0, 4);
-    setPlane(charMap[minutes % 10], 3, 0, 0, 4);
+    setPlane(charMap[minutes / 10], 1, 0, 0, 1);
+    setPlane(charMap[minutes % 10], 5, 0, 0, 1);
     // setting seconds
-    setPlane(charMap[seconds / 10], 0, 1, 0, 2);
-    setPlane(charMap[seconds % 10], 0, 5, 0, 2);
+    setPlane(charMap[seconds / 10], 0, 7, 0, 5);
+    setPlane(charMap[seconds % 10], 0, 3, 0, 5);
 
     if (minutes == 0 && (hourAnimationCounter > 1 || seconds < 5))
     {
@@ -351,8 +360,8 @@ void CubeController::setClockFrameThreeSideClock()
             if (seconds % 10 == 0 && tenSecondAnimationCounter < 10)
             {
                 ++tenSecondAnimationCounter;
-                setPlane(charMap[seconds / 10], tenSecondAnimationCounter/2, 1, 0, 2);
-                setPlane(charMap[seconds % 10], tenSecondAnimationCounter/2, 5, 0, 2);
+                setPlane(charMap[seconds / 10], tenSecondAnimationCounter/2, 7, 0, 5);
+                setPlane(charMap[seconds % 10], tenSecondAnimationCounter/2, 3, 0, 5);
             }
             else if (seconds % 10 != 0)
             {
@@ -419,6 +428,8 @@ bool CubeController::endCustomAnimation()
         running_animation = nullptr;
         delete customAnimationVals;
         customAnimationVals = nullptr;
+        animationMaxFrame = 0;
+        frameFactor = 0;
         return true;
     }
     customAnimationVals[0] += 1;
@@ -430,11 +441,18 @@ void CubeController::fireworksAnimation()
 {
     clear();
 
-    const int frameFactor = 3;
+    if (frameFactor == 0)
+    {
+        frameFactor = 3;
+    }
+    if (animationMaxFrame == 0)
+    {
+        animationMaxFrame = 100;
+    }
     #define EXPLOSION1 3
     #define EXPLOSION2 8
     #define EXPLOSION3 13
-    if (setupCustomAnimation(100*frameFactor, 15, &CubeController::fireworksAnimation))
+    if (setupCustomAnimation(animationMaxFrame*frameFactor, 15, &CubeController::fireworksAnimation))
     {
         // different explosions
         customAnimationVals[EXPLOSION1] = 0;
@@ -504,20 +522,27 @@ void CubeController::randomZigzagAnimation()
 {
     clear();
 
-    const int frameFactor = 1;
+    if (frameFactor == 0)
+    {
+        frameFactor = 1;
+    }
+    if (animationMaxFrame == 0)
+    {
+        animationMaxFrame = 150;
+    }
     #define ZIGZAG_COUNT 100
     #define ZIGZAG_POS_X 3
     #define ZIGZAG_POS_Y 4
     #define ZIGZAG_POS_Z 5
 
-    if (setupCustomAnimation(150*frameFactor, 3*ZIGZAG_COUNT, &CubeController::randomZigzagAnimation))
+    if (setupCustomAnimation(animationMaxFrame*frameFactor, 3*ZIGZAG_COUNT, &CubeController::randomZigzagAnimation))
     {
         // ZigZag Coordinats. Each is with an offset of 1
         for (int i = 0; i < ZIGZAG_COUNT; ++i)
         {
-            customAnimationVals[ZIGZAG_POS_X+i] = random(0, 7);
-            customAnimationVals[ZIGZAG_POS_Y+i] = random(0, 7);
-            customAnimationVals[ZIGZAG_POS_Z+i] = random(0, 7);
+            customAnimationVals[ZIGZAG_POS_X+(i*3)] = random(0, 7);
+            customAnimationVals[ZIGZAG_POS_Y+(i*3)] = random(0, 7);
+            customAnimationVals[ZIGZAG_POS_Z+(i*3)] = random(0, 7);
         }
     }
 
@@ -551,17 +576,79 @@ void CubeController::randomZigzagAnimation()
     endCustomAnimation();
 }
 
+void CubeController::glowAnimation()
+{
+    clear();
+
+    if (frameFactor == 0)
+    {
+        frameFactor = 5;
+    }
+    if (animationMaxFrame == 0)
+    {
+        animationMaxFrame = 150;
+    }
+    #define GLOW_COUNT 100
+    #define GLOW_POS_X 3
+    #define GLOW_POS_Y 4
+    #define GLOW_POS_Z 5
+    #define GLOW_BRIGHTNESS 6
+
+    if (setupCustomAnimation(animationMaxFrame*frameFactor, 4*GLOW_COUNT, &CubeController::glowAnimation))
+    {
+        // ZigZag Coordinats. Each is with an offset of 1
+        for (int i = 0; i < GLOW_COUNT; ++i)
+        {
+            customAnimationVals[GLOW_POS_X+(i*4)] = random(0, 7);
+            customAnimationVals[GLOW_POS_Y+(i*4)] = random(0, 7);
+            customAnimationVals[GLOW_POS_Z+(i*4)] = random(0, 7);
+            customAnimationVals[GLOW_BRIGHTNESS+(i*4)] = random(0, 31);
+        }
+    }
+
+    for (int i = 0; i < GLOW_COUNT*4; i+=4)
+    {
+        if (customAnimationVals[0] % frameFactor == 0)
+        {
+            if (customAnimationVals[GLOW_BRIGHTNESS+i] >= (2*pow(2, BRIGHTNESS_BITS))-1)
+            {
+                customAnimationVals[GLOW_POS_X+i] = random(0, 7);
+                customAnimationVals[GLOW_POS_Y+i] = random(0, 7);
+                customAnimationVals[GLOW_POS_Z+i] = random(0, 7);
+                customAnimationVals[GLOW_BRIGHTNESS+i] = 0;
+            }
+            else {
+                customAnimationVals[GLOW_BRIGHTNESS+i] += 1;
+            }
+        }
+
+        if (customAnimationVals[GLOW_BRIGHTNESS+i] < pow(2, BRIGHTNESS_BITS))
+            setCoordBrightness(customAnimationVals[GLOW_POS_X+i]-1, customAnimationVals[GLOW_POS_Y+i]-1, customAnimationVals[GLOW_POS_Z+i]-1, customAnimationVals[GLOW_BRIGHTNESS+i]);
+        else
+            setCoordBrightness(customAnimationVals[GLOW_POS_X+i]-1, customAnimationVals[GLOW_POS_Y+i]-1, customAnimationVals[GLOW_POS_Z+i]-1, 31-customAnimationVals[GLOW_BRIGHTNESS+i]);
+    }
+
+    endCustomAnimation();
+}
+
 void CubeController::snakeAnimation()
 {
     clear();
 
-    const int frameFactor = 8;
+    if (frameFactor == 0)
+    {
+        frameFactor = 8;
+    }
+    if (animationMaxFrame == 0)
+    {
+        animationMaxFrame = 50;
+    }
     #define SNAKE_LINKS_COUNT 4
     #define SNAKE_POS_X 3
     #define SNAKE_POS_Y 4
     #define SNAKE_POS_Z 5
 
-    if (setupCustomAnimation(150*frameFactor, 3*SNAKE_LINKS_COUNT, &CubeController::snakeAnimation))
+    if (setupCustomAnimation(animationMaxFrame*frameFactor, 3*SNAKE_LINKS_COUNT, &CubeController::snakeAnimation))
     {
         // ZigZag Coordinats. Each is with an offset of 1
         memset(customAnimationVals+SNAKE_POS_X, 4, 3*SNAKE_LINKS_COUNT);
@@ -615,6 +702,48 @@ void CubeController::snakeAnimation()
         setCoord(customAnimationVals[SNAKE_POS_X+link]-1, customAnimationVals[SNAKE_POS_Y+link]-1, customAnimationVals[SNAKE_POS_Z+link]-1, true);
 
     endCustomAnimation();
+}
+
+bool CubeController::startAnimation(String name)
+{
+    if (name == "fireworks")
+    {
+        fireworksAnimation();
+    }
+    else if (name == "zigzag")
+    {
+        randomZigzagAnimation();
+    }
+    else if (name == "glow")
+    {
+        glowAnimation();
+    }
+    else if (name == "snake")
+    {
+        snakeAnimation();
+    }
+    else
+    {
+        return false;
+    }
+    return true;
+}
+
+void CubeController::stopRunningAnimation()
+{
+    if (customAnimationVals[0] > 0)
+    {
+        customAnimationVals[1] = 1;
+        CubeMode tmpMode = mode;
+        endCustomAnimation();
+        setCubeMode(tmpMode);
+    }
+}
+
+void CubeController::setAnimationLengthAlmostToInfinity()
+{
+    // this ist 2^32 / 256
+    animationMaxFrame = 16777216;
 }
 
 void CubeController::update()
