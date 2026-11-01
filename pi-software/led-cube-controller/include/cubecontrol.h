@@ -73,7 +73,7 @@ class CubeController
         void setCoordBrightness(byte x, byte y, byte z, byte brightness);
         void setCoord(byte x, byte y, byte z, bool on);
         void drawLine(byte x1, byte y1, byte z1, byte x2, byte y2, byte z2);
-        void drawSphere(int x, int y, int z, int radius);
+        void drawSphere(int x, int y, int z, int radius, byte brightness);
         CubeController(uint32_t _baudRate);
         void sendFrame(const char *frameHex, uint32_t frameLen);
         void update();
@@ -93,6 +93,7 @@ class CubeController
         void fireworksAnimation();
         void randomZigzagAnimation();
         void glowAnimation();
+        void pulseAnimation();
         void snakeAnimation();
 };
 #endif

@@ -42,12 +42,14 @@ void CubeController::updateTime()
 void CubeController::setCoordBrightness(byte x, byte y, byte z, byte brightness)
 {
     // Make sure coords are not out of rage:
-    if (x > CUBE_SIDE_LENGTH)
+    if (x >= CUBE_SIDE_LENGTH)
         x = CUBE_SIDE_LENGTH-1;
-    if (y > CUBE_SIDE_LENGTH)
+    if (y >= CUBE_SIDE_LENGTH)
         y = CUBE_SIDE_LENGTH-1;
-    if (z > CUBE_SIDE_LENGTH)
+    if (z >= CUBE_SIDE_LENGTH)
         z = CUBE_SIDE_LENGTH-1;
+    if (brightness >= MAXIMUM_BRIGHTNESS)
+        brightness = MAXIMUM_BRIGHTNESS - 1;
     for (int i = 0; i < BRIGHTNESS_BITS; ++i)
     {
         if (brightness & (0x01 << i))
@@ -60,7 +62,7 @@ void CubeController::setCoordBrightness(byte x, byte y, byte z, byte brightness)
 void CubeController::setCoord(byte x, byte y, byte z, bool on)
 {
     if (on)
-        setCoordBrightness(x, y, z, pow(2, BRIGHTNESS_BITS) - 1);
+        setCoordBrightness(x, y, z, MAXIMUM_BRIGHTNESS - 1);
     else
         setCoordBrightness(x, y, z, 0);
 }
@@ -204,7 +206,7 @@ void CubeController::drawLine(byte x1, byte y1, byte z1, byte x2, byte y2, byte 
     setCoord(x2, y2, z2, true);
 }
 
-void CubeController::drawSphere(int x, int y, int z, int radius)
+void CubeController::drawSphere(int x, int y, int z, int radius, byte brightness)
 {
     radius = abs(radius);
     for (int layer = -((int)radius); layer <= radius; ++layer)
@@ -213,7 +215,7 @@ void CubeController::drawSphere(int x, int y, int z, int radius)
         {
             for (int linePosition = -(radius - abs(layer) - abs(planeRadius)); linePosition <= radius - abs(layer) - abs(planeRadius); ++linePosition)
             {
-                setCoord(x+linePosition, y+planeRadius, z+layer, true);
+                setCoordBrightness(x+linePosition, y+planeRadius, z+layer, brightness);
             }
         }
     }
@@ -505,7 +507,7 @@ void CubeController::fireworksAnimation()
         else if ((customAnimationVals[i]/frameFactor) <= (customAnimationVals[i+3]+(customAnimationVals[i+4]*3)))
         {
             int currentRadius = ((customAnimationVals[i]/frameFactor) - customAnimationVals[i+3])/3;
-            drawSphere(customAnimationVals[i+1], customAnimationVals[i+2], customAnimationVals[i+3], currentRadius);
+            drawSphere(customAnimationVals[i+1], customAnimationVals[i+2], customAnimationVals[i+3], currentRadius, MAXIMUM_BRIGHTNESS);
         }
         else {
             customAnimationVals[i] = 0;
@@ -610,7 +612,7 @@ void CubeController::glowAnimation()
     {
         if (customAnimationVals[0] % frameFactor == 0)
         {
-            if (customAnimationVals[GLOW_BRIGHTNESS+i] >= (2*pow(2, BRIGHTNESS_BITS))-1)
+            if (customAnimationVals[GLOW_BRIGHTNESS+i] >= (2*MAXIMUM_BRIGHTNESS)-1)
             {
                 customAnimationVals[GLOW_POS_X+i] = random(0, 7);
                 customAnimationVals[GLOW_POS_Y+i] = random(0, 7);
@@ -622,10 +624,52 @@ void CubeController::glowAnimation()
             }
         }
 
-        if (customAnimationVals[GLOW_BRIGHTNESS+i] < pow(2, BRIGHTNESS_BITS))
+        if (customAnimationVals[GLOW_BRIGHTNESS+i] < MAXIMUM_BRIGHTNESS)
             setCoordBrightness(customAnimationVals[GLOW_POS_X+i]-1, customAnimationVals[GLOW_POS_Y+i]-1, customAnimationVals[GLOW_POS_Z+i]-1, customAnimationVals[GLOW_BRIGHTNESS+i]);
         else
             setCoordBrightness(customAnimationVals[GLOW_POS_X+i]-1, customAnimationVals[GLOW_POS_Y+i]-1, customAnimationVals[GLOW_POS_Z+i]-1, 31-customAnimationVals[GLOW_BRIGHTNESS+i]);
+    }
+
+    endCustomAnimation();
+}
+
+void CubeController::pulseAnimation()
+{
+    if (frameFactor == 0)
+    {
+        frameFactor = 1;
+    }
+    if (animationMaxFrame == 0)
+    {
+        animationMaxFrame = 250;
+    }
+    #define PULSE_MAX_BRIGHTNESS 8
+    #define PULSE_COUNT 2*CUBE_SIDE_LENGTH
+    #define PULSE_RADIUS 3
+    #define PULSE_ZERO_FRAMES 4
+
+    if (setupCustomAnimation(animationMaxFrame*frameFactor, 1, &CubeController::pulseAnimation))
+    {
+        customAnimationVals[PULSE_RADIUS] = 0;
+    }
+
+    if (customAnimationVals[0] % frameFactor == 0)
+    {
+        clear();
+
+        for (int z = 0; z < CUBE_SIDE_LENGTH; ++z)
+        for (int y = 0; y < CUBE_SIDE_LENGTH; ++y)
+        for (int x = 0; x < CUBE_SIDE_LENGTH; ++x)
+        {
+            int centerX = x < 4 ? 3 : 4;
+            int centerY = y < 4 ? 3 : 4;
+            int centerZ = z < 4 ? 3 : 4;
+            int distance = (abs(centerX - x) + abs(centerY - y) + abs(centerZ - z));
+
+            int brightness = (customAnimationVals[PULSE_RADIUS]-distance) % 16;
+            setCoordBrightness(x, y, z, brightness);
+        }
+        customAnimationVals[PULSE_RADIUS] += 1;
     }
 
     endCustomAnimation();
@@ -717,6 +761,10 @@ bool CubeController::startAnimation(String name)
     else if (name == "glow")
     {
         glowAnimation();
+    }
+    else if (name == "pulse")
+    {
+        pulseAnimation();
     }
     else if (name == "snake")
     {
