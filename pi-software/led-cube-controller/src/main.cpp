@@ -1,4 +1,6 @@
 #include <Arduino.h>
+#include <ArduinoOTA.h>
+#include <HTTPUpdateServer.h>
 
 #include "../include/constants.h"
 #include "../include/wifi.h"
@@ -9,6 +11,8 @@ CubeController cController(BAUDRATE);
 PongGame* currentPongGame = nullptr;
 WifiController wifiController(WIFI_SSID, WIFI_PASSWORD);
 WebServer websrv(80);
+HTTPUpdateServer updateServer;
+
 
 void handleRoot()
 {
@@ -152,6 +156,7 @@ void initWebServer()
     websrv.on("/animation/start", HTTP_POST, handleConstantAnimationStart);
     websrv.on("/animation/stop", HTTP_POST, handleConstantAnimationStop);
     websrv.onNotFound(handleNotFound);
+    updateServer.setup(&websrv, "/setup/ota");
     websrv.begin();
 }
 

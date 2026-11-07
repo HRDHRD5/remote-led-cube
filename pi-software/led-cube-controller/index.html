@@ -27,7 +27,7 @@
         body {
             margin: 0;
             min-height: 100vh;
-            padding: 24px;
+            padding: 1em;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -38,6 +38,7 @@
         }
 
         .container {
+            padding: 1em;
             width: 100%;
             max-width: 700px;
         }
@@ -306,182 +307,191 @@
 
 <body>
 
-    <div class="container">
-        <div class="card">
+    <div style="margin: auto;">
+        <div class="container">
+            <div class="card">
 
-            <h1>Clock Control</h1>
-            <p class="subtitle">
-                Configure the clock displayed by the system.
-            </p>
+                <h1>Clock Control</h1>
+                <p class="subtitle">
+                    Configure the clock displayed by the system.
+                </p>
 
-            <!-- Change cube mode -->
-            <div class="setting">
-                <div>
-                    <div class="setting-title">Mode</div>
-                    <div class="setting-description">
-                        Change the display mode for the cube.
+                <!-- Change cube mode -->
+                <div class="setting">
+                    <div>
+                        <div class="setting-title">Mode</div>
+                        <div class="setting-description">
+                            Change the display mode for the cube.
+                        </div>
                     </div>
+
+                    <label for="cube-mode" class="dropdown-label">
+                        Mode
+                    </label>
+
+                    <select id="cube-mode" class="dropdown" name="cube-mode">
+                        <option value="off">Off</option>
+                        <option value="clock">Clock</option>
+                        <option value="animation">Constant Animation</option>
+                        <option value="pong">Pong Game</option>
+                        <option value="remote">Live Packets</option>
+                    </select>
                 </div>
 
-                <label for="cube-mode" class="dropdown-label">
-                    Mode
-                </label>
+                <!-- Clock enabled -->
+                <div id="clockMode">
 
-                <select id="cube-mode" class="dropdown" name="cube-mode">
-                    <option value="off">Off</option>
-                    <option value="clock">Clock</option>
-                    <option value="animation">Constant Animation</option>
-                    <option value="pong">Pong Game</option>
-                    <option value="remote">Live Packets</option>
-                </select>
-            </div>
-
-            <!-- Clock enabled -->
-            <div id="clockMode">
-
-                <div class="clock-container">
-                    <div id="clock">00:00:00</div>
-                </div>
-
-                <div class="clock-controls">
-
-                    <!-- One time animations -->
-                    <div class="control">
-                        <div class="control-title">
-                            One Time Animations
-                        </div>
-
-                        <div class="setting-description">
-                            Display an animation one time on the cube.
-                        </div>
-
-                        <br>
-
-                        <button onclick="showAnimation('fireworks');">
-                            Fireworks
-                        </button>
-
-                        <button onclick="showAnimation('zigzag');">
-                            ZigZag
-                        </button>
-
-                        <button onclick="showAnimation('glow');">
-                            Glow
-                        </button>
-
-                        <button onclick="showAnimation('pulse');">
-                            Pulse
-                        </button>
-
-                        <button onclick="showAnimation('snake');">
-                            Snake
-                        </button>
+                    <div class="clock-container">
+                        <div id="clock">00:00:00</div>
                     </div>
 
-                    <!-- Automatic browser time -->
-                    <div class="control">
-                        <div class="control-title">
-                            Automatically use browser time
-                        </div>
+                    <div class="clock-controls">
 
-                        <div class="setting-description">
-                            Synchronize the clock with the current time of
-                            the browser.
-                        </div>
+                        <!-- One time animations -->
+                        <div class="control">
+                            <div class="control-title">
+                                One Time Animations
+                            </div>
 
-                        <br>
+                            <div class="setting-description">
+                                Display an animation one time on the cube.
+                            </div>
 
-                        <button id="browserTimeButton">
-                            Use browser time
-                        </button>
-                    </div>
+                            <br>
 
-                    <!-- Manual time -->
-                    <div class="control">
-                        <div class="control-title">
-                            Set time manually
-                        </div>
+                            <button onclick="showAnimation('fireworks');">
+                                Fireworks
+                            </button>
 
-                        <div class="setting-description">
-                            Set the clock to a specific time.
-                        </div>
+                            <button onclick="showAnimation('zigzag');">
+                                ZigZag
+                            </button>
 
-                        <br>
+                            <button onclick="showAnimation('glow');">
+                                Glow
+                            </button>
 
-                        <div class="control-row">
-                            <input type="time" id="manualTime" step="1">
+                            <button onclick="showAnimation('pulse');">
+                                Pulse
+                            </button>
 
-                            <button id="manualTimeButton">
-                                Set time
+                            <button onclick="showAnimation('snake');">
+                                Snake
                             </button>
                         </div>
-                    </div>
 
-                </div>
-            </div>
+                        <!-- Automatic browser time -->
+                        <div class="control">
+                            <div class="control-title">
+                                Automatically use browser time
+                            </div>
 
-            <!-- Constant Animation enabled -->
-            <div id="constAnimation">
+                            <div class="setting-description">
+                                Synchronize the clock with the current time of
+                                the browser.
+                            </div>
 
-                <div class="clock-controls">
+                            <br>
 
-                    <!-- Animation Select -->
-                    <div class="control">
-                        <div class="control-title">
-                            Animation
+                            <button id="browserTimeButton">
+                                Use browser time
+                            </button>
                         </div>
 
-                        <div class="setting-description">
-                            Select an animation to display constantly.
+                        <!-- Manual time -->
+                        <div class="control">
+                            <div class="control-title">
+                                Set time manually
+                            </div>
+
+                            <div class="setting-description">
+                                Set the clock to a specific time.
+                            </div>
+
+                            <br>
+
+                            <div class="control-row">
+                                <input type="time" id="manualTime" step="1">
+
+                                <button id="manualTimeButton">
+                                    Set time
+                                </button>
+                            </div>
                         </div>
 
-                        <br>
+                    </div>
+                </div>
 
-                        <label for="cube-animation" class="dropdown-label">
-                            Animation
-                        </label>
+                <!-- Constant Animation enabled -->
+                <div id="constAnimation">
 
-                        <select id="cube-animation" class="dropdown" name="cube-mode">
-                            <option value="fireworks">Fireworks</option>
-                            <option value="zigzag">ZigZag</option>
-                            <option value="glow">Glow</option>
-                            <option value="pulse">Pulse</option>
-                            <option value="snake">Snake</option>
-                        </select>
+                    <div class="clock-controls">
+
+                        <!-- Animation Select -->
+                        <div class="control">
+                            <div class="control-title">
+                                Animation
+                            </div>
+
+                            <div class="setting-description">
+                                Select an animation to display constantly.
+                            </div>
+
+                            <br>
+
+                            <label for="cube-animation" class="dropdown-label">
+                                Animation
+                            </label>
+
+                            <select id="cube-animation" class="dropdown" name="cube-mode">
+                                <option value="fireworks">Fireworks</option>
+                                <option value="zigzag">ZigZag</option>
+                                <option value="glow">Glow</option>
+                                <option value="pulse">Pulse</option>
+                                <option value="snake">Snake</option>
+                            </select>
+
+                        </div>
 
                     </div>
+                </div>
 
+                <!-- Remote Packets Mode -->
+                <div id="displayMode" class="display-endpoint hidden">
+                    <strong>Remote Mode</strong>
+
+                    <div class="endpoint">/display</div>
+
+                    <p>
+                        Packages can be sent to this endpoint to display
+                        content.
+                    </p>
+                </div>
+
+                <!-- Cube disabled -->
+                <div id="disabledMode" class="display-endpoint hidden">
+                    <strong>Off</strong>
+
+                    <p>
+                        The Cube is Off right now. Nothing is being displayed.
+                    </p>
+                </div>
+
+                <!-- Pong Game Mode -->
+                <div id="pongGameMode" class="display-endpoint hidden">
+                    <strong>Pong Game</strong>
+
+                    <p>
+                        Lets play Pong!
+                    </p>
                 </div>
             </div>
+        </div>
 
-            <!-- Remote Packets Mode -->
-            <div id="displayMode" class="display-endpoint hidden">
-                <strong>Remote Mode</strong>
-
-                <div class="endpoint">/display</div>
-
-                <p>
-                    Packages can be sent to this endpoint to display
-                    content.
-                </p>
-            </div>
-
-            <!-- Cube disabled -->
-            <div id="disabledMode" class="display-endpoint hidden">
-                <strong>Off</strong>
-
-                <p>
-                    The Cube is Off right now. Nothing is being displayed.
-                </p>
-            </div>
-
-            <!-- Pong Game Mode -->
-            <div id="pongGameMode" class="display-endpoint hidden">
-                <strong>Pong Game</strong>
-
-                <p>
-                    Lets play Pong!
-                </p>
+        <div class="container">
+            <div class="card">
+                <h1>Settings</h1>
+                <iframe src="/setup/ota"></iframe>
             </div>
         </div>
     </div>
