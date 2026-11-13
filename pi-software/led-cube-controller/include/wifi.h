@@ -5,16 +5,21 @@
 #include <WebServer.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
+#include <Preferences.h>
 #include "cubecontrol.h"
 
 class WifiController
 {
 private:
-    const char *wifiSsid;
-    const char *wifiPassword;
-public:
-    WifiController(const char *_wifiSsid, const char *_wifiPassword);
+    static Preferences prefs; // object for persistent storage
+    String wifiSsid;
+    String wifiPassword;
     void tryUntilWifiConnected();
+    void tryUntilAPReady();
+public:
+    WifiController();
+    void initWifi();
+    void setWifi(String ssid, String password);
 };
 
 #endif

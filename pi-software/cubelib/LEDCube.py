@@ -1,5 +1,6 @@
 import requests
 import math
+import random
 from datetime import datetime
 from enum import Enum
 
@@ -61,7 +62,7 @@ class LEDCube:
         return self.matrix[(z * self.width * self.width) + (y * self.width) + x]
 
     def get_max_brightness(self) -> int:
-        return math.pow(2, self.brightness_bits) - 1
+        return int(math.pow(2, self.brightness_bits)) - 1
 
     def set_coord_brightness(self, x: int, y: int, z: int, brightness: int):
         if x >= self.width or y >= self.width or z >= self.width:
@@ -165,6 +166,18 @@ class LEDCube:
         if response.status_code != 200:
             print(str(response))
             raise RuntimeError("The webserver gave non ok response.")
+
+    def set_random(self):
+        for x in range(self.width):
+            for y in range(self.width):
+                for z in range(self.width):
+                    self.set_coord_brightness(x, y, z, random.randint(0, self.get_max_brightness()))
+
+    def set_full_cube(self, brightness: int):
+        for x in range(self.width):
+            for y in range(self.width):
+                for z in range(self.width):
+                    self.set_coord_brightness(x, y, z, brightness)
 
 
 if __name__ == "__main__":

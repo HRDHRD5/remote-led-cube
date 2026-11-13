@@ -3,8 +3,8 @@
 #define LED_CUBE_CONTROLLER_CONSTANTS_H
 
 #define BAUDRATE 105600
-#define WIFI_SSID "wifi-ssid"
-#define WIFI_PASSWORD "wifi-password"
+#define AP_WIFI_SSID "I turned myself into an LEDCube"
+#define AP_WIFI_PASSWORD "oFLUA8LFaO7bI8ckKvMk6lB"
 #define WIFI_HOSTNAME "ledcube"
 #define API_PASSWORD ""
 

@@ -9,7 +9,7 @@
 
 CubeController cController(BAUDRATE);
 PongGame* currentPongGame = nullptr;
-WifiController wifiController(WIFI_SSID, WIFI_PASSWORD);
+WifiController wifiController{};
 WebServer websrv(80);
 HTTPUpdateServer updateServer;
 
@@ -139,6 +139,26 @@ void handleDisplay()
     websrv.send(200, "text/plain", "Frame send to cube");
 }
 
+void handleSetupWifi()
+{
+    String frameRaw = websrv.arg("plain");
+    int lineBr = frameRaw.indexOf("\n");
+    if (lineBr < 0)
+    {
+        websrv.send(400, "text/plain", "Missing password");
+        return;
+    }
+    String ssid = frameRaw.substring(0, lineBr);
+    String password = frameRaw.substring(lineBr+1);
+    int nextLineBr = password.indexOf("\n");
+    if (nextLineBr >= 0)
+    {
+        password = password.substring(0, nextLineBr);
+    }
+    websrv.send(200, "text/plain", "Updating Wifi...");
+    wifiController.setWifi(ssid, password);
+}
+
 void handleNotFound()
 {
     websrv.send(404, "text/plain", "404 Not Found");
@@ -155,6 +175,7 @@ void initWebServer()
     websrv.on("/animation/onetime", HTTP_POST, handleOneTimeAnimation);
     websrv.on("/animation/start", HTTP_POST, handleConstantAnimationStart);
     websrv.on("/animation/stop", HTTP_POST, handleConstantAnimationStop);
+    websrv.on("/setup/wifi", HTTP_POST, handleSetupWifi);
     websrv.onNotFound(handleNotFound);
     updateServer.setup(&websrv, "/setup/ota");
     websrv.begin();
@@ -164,9 +185,8 @@ void setup()
 {
     Serial1.begin(BAUDRATE, SERIAL_8N1);
     Serial.begin(115200);
-    wifiController.tryUntilWifiConnected();
+    wifiController.initWifi();
     initWebServer();
-    Serial.println(WiFi.localIP());
 }
 
 void loop()
