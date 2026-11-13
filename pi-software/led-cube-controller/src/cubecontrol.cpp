@@ -378,7 +378,7 @@ void CubeController::setClockFrameThreeSideClock()
 
 void CubeController::sendFrame(const char *frameHex, uint32_t frameLen)
 {
-    if (mode)
+    if (mode != CUBEMODE_REMOTE)
     {
         return;
     }
@@ -386,21 +386,16 @@ void CubeController::sendFrame(const char *frameHex, uint32_t frameLen)
     digitalWrite(LED_BUILTIN, LOW);
     byte frame[FRAME_LENGTH];
 
-    Serial.println("Trying to send Frame:");
-    Serial.println(frameHex);
-
     for (int i = 0; i < FRAME_LENGTH; ++i)
     {
         if (i < frameLen-1)
         {
             frame[i] = hexToByte(frameHex + (2 * i));
-            Serial.printf("%02x", frame[i]);
         }
         else {
             frame[i] = 0x00;
         }
     }
-    Serial.println();
 
     sendFrameUART(frame);
     digitalWrite(LED_BUILTIN, HIGH);
